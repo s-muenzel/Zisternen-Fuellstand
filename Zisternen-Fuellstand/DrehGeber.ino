@@ -9,7 +9,7 @@
 // 17.06.2015 minor updates.
 // -----
 
-#include "Arduino.h"
+#include <Arduino.h>
 #include "DrehGeber.h"
 
 ////////////////////////////////////////////
@@ -97,7 +97,7 @@ bool DrehGeber::tick(void)
   sig1 = digitalRead(_pinButton);
   if ( sig1 != _old_buttonState) {
     _old_buttonState = sig1;
-    if (sig1 = HIGH)
+    if (sig1 == HIGH)
       _Last_Change = Button_Released;
     else
       _Last_Change = Button_Pressed;

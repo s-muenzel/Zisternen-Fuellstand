@@ -70,7 +70,7 @@ int Fake_Richtung = 1;
 
 NewPing Sensor(PIN_TRIGGER, PIN_ECHO, MAX_ABSTAND);    // TRIGGER, ECHO, MAX_ABSTAND
 
-Anzeige Display();
+Anzeige _Anzeige;
 
 DrehGeber drehRegler(PIN_ROTARY_A, PIN_ROTARY_A, PIN_BUTTON);
 
@@ -178,7 +178,7 @@ void setup() {
   Letzter_Wasserverbrauch = Wasserverbrauch;
 
   // Start des Displays
-  Display.begin();
+  _Anzeige.begin();
 
   //// Knopf des Rotary Encoders bereit machen
   //  pinMode(PIN_BUTTON,INPUT);
@@ -196,11 +196,11 @@ void loop() {
     switch (drehRegler.getChange()) {
       case DrehGeber::Rotated: 			// Drehung
         D_PRINT("Drehung:"); D_PRINTLN(drehRegler.getPosition());
-        Display.Licht_An(BELEUCHTUNGSDAUER);
+        _Anzeige.Licht_An(BELEUCHTUNGSDAUER);
         break;
       case DrehGeber::Button_Pressed:	// Knopf gedrueckt
         D_PRINTLN("Knopf gedrueckt");
-        Display.Licht_An(BELEUCHTUNGSDAUER);
+        _Anzeige.Licht_An(BELEUCHTUNGSDAUER);
         break;
       case DrehGeber::Button_Released:	// Knopf losgelassen
         D_PRINTLN("Knopf losgelassen");
@@ -232,19 +232,19 @@ void loop() {
     if (Aktueller_Wasserabstand > Max_Wasserabstand) {
       Max_Wasserabstand = Aktueller_Wasserabstand;
       EEPROM.put(EEPROM_MAXW, Max_Wasserabstand);
-      Display.Werte_Zeile_2(Wasserverbrauch, Min_Wasserabstand, Aktueller_Wasserabstand, Max_Wasserabstand);
+      _Anzeige.Werte_Zeile_2(Wasserverbrauch, Min_Wasserabstand, Aktueller_Wasserabstand, Max_Wasserabstand);
     } else if (Aktueller_Wasserabstand < Min_Wasserabstand) {
       Min_Wasserabstand = Aktueller_Wasserabstand;
       EEPROM.put(EEPROM_MINW, Min_Wasserabstand);
-      Display.Werte_Zeile_2(Wasserverbrauch, Min_Wasserabstand, Aktueller_Wasserabstand, Max_Wasserabstand);
+      _Anzeige.Werte_Zeile_2(Wasserverbrauch, Min_Wasserabstand, Aktueller_Wasserabstand, Max_Wasserabstand);
     }
 
     // Darstellen
-    Display.Werte_Zeile_1(Liter(Max_Wasserabstand, Aktueller_Wasserabstand), Fuellstand());
+    _Anzeige.Werte_Zeile_1(Liter(Max_Wasserabstand, Aktueller_Wasserabstand), Fuellstand());
 
     // Wasserverbrauch addieren
     if (Wasserverbrauch_Aktualisieren())
-      Display.Werte_Zeile_2(Wasserverbrauch, Min_Wasserabstand, Aktueller_Wasserabstand, Max_Wasserabstand);
+      _Anzeige.Werte_Zeile_2(Wasserverbrauch, Min_Wasserabstand, Aktueller_Wasserabstand, Max_Wasserabstand);
 
 
     // Wenn DEBUG, dann die Werte auf Seriell ausgeben
@@ -259,7 +259,7 @@ void loop() {
     D_PRINTLN("l)");
 
   }
-  Display.tick();
+  _Anzeige.tick();
 }
 
 
