@@ -17,7 +17,8 @@ class DrehGeber
       Nothing = 0,
       Button_Pressed,
       Button_Released,
-      Rotated
+      Rotated_Plus,
+	  Rotated_Minus
     } Change;
 
     // call this function every some milliseconds to detect a state changes of the rotary encoder.

@@ -12,17 +12,6 @@
 #include <Arduino.h>
 #include "DrehGeber.h"
 
-////////////////////////////////////////////
-// Hilfskonstrukt, zum Debuggen
-#ifdef DEBUG
-#define PRINT      if(true)Serial.print
-#define PRINTLN    if(true)Serial.println
-#else
-#define PRINT      if(false)Serial.print
-#define PRINTLN    if(false)Serial.println
-#endif
-
-
 // The array holds the values �1 for the entries where a position was decremented,
 // a 1 for the entries where the position was incremented
 // and 0 in all the other (no change or not valid) cases.
@@ -88,19 +77,36 @@ bool DrehGeber::tick(void)
   int8_t thisState = sig1 | (sig2 << 1);
 
   if (_oldState != thisState) {
-    _position += KNOBDIR[thisState | (_oldState << 2)];
-    _oldState = thisState;
-    _Last_Change = Rotated;
-    return true;
+	switch(KNOBDIR[thisState | (_oldState << 2)]) {
+		case 1:
+			D_PRINTLN("Rotate +");
+			_position += KNOBDIR[thisState | (_oldState << 2)];
+			_oldState = thisState;
+			_Last_Change = Rotated_Plus;
+			return true;
+			break;
+		case -1:
+			D_PRINTLN("Rotate -");
+			_position--;
+			_oldState = thisState;
+			_Last_Change = Rotated_Minus;
+			return true;
+			break;
+		default:
+			break;
+	}
   }
 
   sig1 = digitalRead(_pinButton);
   if ( sig1 != _old_buttonState) {
     _old_buttonState = sig1;
-    if (sig1 == HIGH)
+    if (sig1 == HIGH) {
+		D_PRINTLN("Button_Released");
       _Last_Change = Button_Released;
-    else
+    } else {
+		D_PRINTLN("Button_Pressed");
       _Last_Change = Button_Pressed;
+	}
     return true;
   }
 

@@ -5,18 +5,22 @@
   // ---------------------------------------------------------------------------
 */
 
+#define DEBUG
+#define STUB_TEST
+
+
 // EEPROM: Um Füllstand Max / Min zu speichern. Ggfs. um Gesamt-Wasserverbrauch zu merken
 #include <EEPROM.h>
+
+#ifndef STUB_TEST
 // NewPing: HC-SR04 Sensor Bibliothek
 #include <NewPing.h>
+#endif
+
 // Anzeige (16x2 LCD per I2C)
 #include "Anzeige.h"
 // Rotary Encoder, basierend auf Arduino gelistete Bibliothek von Matthias Hertel
 #include "DrehGeber.h"
-
-
-#define DEBUG
-#define STUB_TEST
 
 
 ////////////////////////////////////////////
@@ -39,20 +43,23 @@
 #define INITIAL_MAX_WASSERABSTAND 100 // [cm], nur zum initialisieren (wird real etwa bei 10cm sein)
 #define INITIAL_MIN_WASSERABSTAND 101 // [cm], nur zum initialisieren (wird real etwa bei 180cm sein)
 
+#define ZISTERNE_LEER			600   // [l] Bei diesem Restwasserstand sollte zumindest die Aussenpumpe nur noch Luft ansaugen
+#define ZISTERNE_FAST_LEER	   1200   // [l] Bei diesem Restwasserstand faengt die Anzeige zur Warnung an zu blinken
+
+
 #define WASSER_VERBRAUCH_SCHWELLE 3   // [cm] Wasserverbrauch nur hochzählen, wenn der Wasserspiegel mindestens um x cm gesunken ist
 
-#define WASSER_VERBRAUCH_UPDATE 1000  // [l] Wasserverbrauch nur neu im EEPROM abspeichern, wenn mindestens 1 Kubikmeter Wasser verbraucht wurde
+#define WASSER_VERBRAUCH_UPDATE 1000  // [l] Wasserverbrauch nur neu im EEPROM abspeichern, wenn mindestens x l Wasser verbraucht wurde (1000 == 1 Kubikmeter)
 
 #define PIN_TRIGGER 12
 #define PIN_ECHO 11
 
+#define MIN_ABSTAND 2                 // Minimaler Abstand Sensor - Wasser[cm]. Check ob Fehlmessung
 #define MAX_ABSTAND 200               // Maximaler Abstand Sensor - Wasser[cm]. Reduziert die Zeit bei einer Fehlmessung
 
 #define PIN_BUTTON                4   // Push-Button des Rotary Encoders
 #define PIN_ROTARY_A              5   // "A" des Rotary Encoders
 #define PIN_ROTARY_B              6   // "B" des Rotary Encoders
-
-#define BELEUCHTUNGSDAUER         2000// Wie lange soll das Licht anbleiben [ms]
 
 #ifdef DEBUG
 #define ZYKLUS_DAUER 5000             // Etwa alle 5 Sekunden messen
@@ -60,18 +67,18 @@
 #define ZYKLUS_DAUER 60000            // Etwa alle Minute messen
 #endif
 
-#ifdef STUB_TEST
-int Fake_Abstand = (INITIAL_MIN_WASSERABSTAND + INITIAL_MAX_WASSERABSTAND) / 2;
-int Fake_Richtung = 1;
-#endif
-
 ////////////////////////////////////////////
 // Die die globalen Variablen und Objekte
 
-NewPing Sensor(PIN_TRIGGER, PIN_ECHO, MAX_ABSTAND);    // TRIGGER, ECHO, MAX_ABSTAND
+#ifndef STUB_TEST
+// HC-SR04 Sensor
+NewPing Sensor(PIN_TRIGGER, PIN_ECHO, MAX_ABSTAND);
+#endif
 
+// Klasse, die ein I2C 16x2 LCD ansteuert
 Anzeige _Anzeige;
 
+// Der Rotary Encoder
 DrehGeber drehRegler(PIN_ROTARY_A, PIN_ROTARY_A, PIN_BUTTON);
 
 
@@ -80,14 +87,16 @@ int Aktueller_Wasserabstand;          // [cm] - Zentimeter Abstand zum Sensor
 int Min_Wasserabstand;                // [cm] - Zentimeter Abstand zum Sensor (groeßer als Maximaler_Wasserstand)
 int Max_Wasserabstand;                // [cm] - Zentimeter Abstand zum Sensor (kleiner als Minimaler_Wasserstand)
 int Letzter_Wasserabstand = 0;        // [cm] - Letzte Messung, bei der der Wasserverbrauch angepasst wurde
-unsigned long Wasserverbrauch;        // [l] - aufsummiert die Menge an Wasser, die wir aus der Zisterne entnommen haben
-unsigned long Letzter_Wasserverbrauch;// [l] - Wann wurde das EEPROM das letzte Mal geschrieben
+unsigned long Wasserverbrauch;        // [l]  - aufsummiert die Menge an Wasser, die wir aus der Zisterne entnommen haben
+unsigned long Letzter_Wasserverbrauch;// [l]  - Wann wurde das EEPROM das letzte Mal geschrieben
+unsigned long Naechste_Messung = 0;   // [ms] - Zeitpunkt der nächsten Messung (nach einer Messung + ZYKLUS_DAUER)
 
 // Hilfsvariablen
-int pos = 0;                          // Position des Rotary-Encoder
-unsigned long Licht_Aus = 0;          // Wenn sll das Licht wieder abgeschaltet werden
-bool Licht_ist_an = false;            // Ist das Licht aktuell an?
-unsigned long Naechste_Messung = 0;   // Zeitpunkt der nächsten Messung (nach einer Messung + ZYKLUS_ZEIT
+#ifdef STUB_TEST
+int Fake_Abstand = (INITIAL_MIN_WASSERABSTAND + INITIAL_MAX_WASSERABSTAND) / 2;
+int Fake_Richtung = 1;
+#endif
+
 
 ///////////////////////////////////////////
 // Hier beginnen die Hilfsfunktionen
@@ -104,13 +113,14 @@ unsigned int Liter(int Neu, int Alt) {
 
 byte Fuellstand() {
   // Vorhandenes Wasser in % der Kapazität
-  return (Max_Wasserabstand - Aktueller_Wasserabstand) / (Max_Wasserabstand - Min_Wasserabstand);
+  return (100*(Max_Wasserabstand - Aktueller_Wasserabstand)) / (Max_Wasserabstand - Min_Wasserabstand);
+  
 }
 
 bool Wasserverbrauch_Aktualisieren() {
   // Wasserverbrauch erhöhen, wenn seit der letzten Erhöhung der Wasserspiegel um mindestens 3cm gesunken ist (also 30*PI ~= 94 Liter weg sind)
   // Dann Letzter_Wasserabstand auf Stand bringen. Letzter_Wasserabstand auch auf Stand bringen, wenn Wasserspiegel genauso viel gestiegen ist
-  // (Vorgehen soll nur die Mess-Schwankungen ausfiltern)
+  // (Vorgehen soll nur Mess-Schwankungen ausfiltern)
   bool Update = false;
   if (Aktueller_Wasserabstand - Letzter_Wasserabstand >= WASSER_VERBRAUCH_SCHWELLE) {
     Wasserverbrauch += Liter(Aktueller_Wasserabstand, Letzter_Wasserabstand);
@@ -179,28 +189,27 @@ void setup() {
 
   // Start des Displays
   _Anzeige.begin();
-
-  //// Knopf des Rotary Encoders bereit machen
-  //  pinMode(PIN_BUTTON,INPUT);
-
 }
 
 void loop() {
   // In loop jedes Mal Knopf und Encoder prüfen
-  // Dann, nur wenn ZYKLUS_DAUER vergangen ist, einen Mess-Zyklus starten
 
   unsigned long Jetzt = millis();
 
   // DrehRegler auswerten
   if (drehRegler.tick()) {
     switch (drehRegler.getChange()) {
-      case DrehGeber::Rotated: 			// Drehung
-        D_PRINT("Drehung:"); D_PRINTLN(drehRegler.getPosition());
-        _Anzeige.Licht_An(BELEUCHTUNGSDAUER);
+      case DrehGeber::Rotated_Plus:		// Drehung nach rechts
+        D_PRINT("Drehung rechts:"); D_PRINTLN(drehRegler.getPosition());
+        _Anzeige.Modus_Zeile_2_Plus();
+        break;
+      case DrehGeber::Rotated_Minus:	// Drehung nach links
+        D_PRINT("Drehung links:"); D_PRINTLN(drehRegler.getPosition());
+        _Anzeige.Modus_Zeile_2_Minus();
         break;
       case DrehGeber::Button_Pressed:	// Knopf gedrueckt
         D_PRINTLN("Knopf gedrueckt");
-        _Anzeige.Licht_An(BELEUCHTUNGSDAUER);
+        _Anzeige.Licht_An();
         break;
       case DrehGeber::Button_Released:	// Knopf losgelassen
         D_PRINTLN("Knopf losgelassen");
@@ -211,6 +220,10 @@ void loop() {
     }
   }
 
+	// nur zur Sicherheit, falls die naechste Messung kurz vor dem millis-Ueberlauf sein sollte koennte sein, dass nie wieder eine Messung passiert.
+	if(Jetzt < ZYKLUS_DAUER)
+		Naechste_Messung = ZYKLUS_DAUER;
+  // Nur wenn ZYKLUS_DAUER vergangen ist, einen Mess-Zyklus starten
   if (Jetzt > Naechste_Messung ) {
     Naechste_Messung += ZYKLUS_DAUER;
 
@@ -225,27 +238,42 @@ void loop() {
     if (Fake_Abstand > 120)
       Fake_Richtung = -1;
     Aktueller_Wasserabstand = Fake_Abstand;
-
 #endif
+	// Fehlmessungen verhindern (wird es die geben??)
+	if (Aktueller_Wasserabstand < 2)
+		Aktueller_Wasserabstand = 2;
+	else if (Aktueller_Wasserabstand >= MAX_ABSTAND)
+		Aktueller_Wasserabstand = MAX_ABSTAND;
+
     // Umrechnen
     // ggfs. Min / Max anpassen
     if (Aktueller_Wasserabstand > Max_Wasserabstand) {
+		D_PRINT("Max Wasserabstand im EEPROM auf ");D_PRINT(Aktueller_Wasserabstand);D_PRINTLN(" gesetzt");
       Max_Wasserabstand = Aktueller_Wasserabstand;
       EEPROM.put(EEPROM_MAXW, Max_Wasserabstand);
       _Anzeige.Werte_Zeile_2(Wasserverbrauch, Min_Wasserabstand, Aktueller_Wasserabstand, Max_Wasserabstand);
     } else if (Aktueller_Wasserabstand < Min_Wasserabstand) {
+		D_PRINT("Min Wasserabstand im EEPROM auf ");D_PRINT(Aktueller_Wasserabstand);D_PRINTLN(" gesetzt");
       Min_Wasserabstand = Aktueller_Wasserabstand;
       EEPROM.put(EEPROM_MINW, Min_Wasserabstand);
       _Anzeige.Werte_Zeile_2(Wasserverbrauch, Min_Wasserabstand, Aktueller_Wasserabstand, Max_Wasserabstand);
     }
 
-    // Darstellen
-    _Anzeige.Werte_Zeile_1(Liter(Max_Wasserabstand, Aktueller_Wasserabstand), Fuellstand());
+	int Restwasser = Liter(Max_Wasserabstand, Aktueller_Wasserabstand);
+    // Dem Display die neuen Werte geben
+    _Anzeige.Werte_Zeile_1(Restwasser, Fuellstand());
 
     // Wasserverbrauch addieren
     if (Wasserverbrauch_Aktualisieren())
       _Anzeige.Werte_Zeile_2(Wasserverbrauch, Min_Wasserabstand, Aktueller_Wasserabstand, Max_Wasserabstand);
 
+	if(Restwasser < ZISTERNE_LEER) {
+		_Anzeige.Blinken(800, 1200); // schnelles Blinken (0,8s an, 1,2s aus)
+	} else if(Restwasser < ZISTERNE_FAST_LEER) {
+		_Anzeige.Blinken(1000, 5000); // blinken mit 1s an, 5s aus
+	} else
+		_Anzeige.Blinken_Aus(); // genug Wasser in der Zisterne, kein Blinken
+	
 
     // Wenn DEBUG, dann die Werte auf Seriell ausgeben
     D_PRINT("Abst. Wasser: "); D_PRINT(Min_Wasserabstand);

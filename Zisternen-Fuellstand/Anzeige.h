@@ -1,6 +1,10 @@
 #ifndef ANZEIGE_H
 #define ANZEIGE_H
 
+// DAUER_HIGHLIGHT ist die Zeit, die das Licht angeschaltet wird [ms]
+// ebenso die Zeit, nach der der Modus in den Grundzustand (Verbrauch) zurückfällt
+#define DAUER_HIGHLIGHT         2000
+
 class Anzeige {
   public:
     Anzeige(); // Constructor
@@ -9,7 +13,7 @@ class Anzeige {
 
     void tick(); // Update, wenn noetig (z.B. Licht an/aus)
 
-    void Licht_An(unsigned long Dauer);
+    void Licht_An();
     void Licht_Aus();
 
     void Blinken(unsigned long Dauer_An, unsigned long Dauer_Aus);
@@ -20,12 +24,15 @@ class Anzeige {
     void Werte_Zeile_2(unsigned long Verbrauch, int Min, int Akt, int Max);
 
     typedef enum Modus_Zeile_2_e {
-      Verbrauch = 0,
+	  Verbrauch = 0,
       MinMax,
       Reset_MinMax
     } Modus_Zeile_2;
 
     void Setze_Modus_Zeile_2(Modus_Zeile_2 Modus);
+    void Modus_Zeile_2_Plus();
+    void Modus_Zeile_2_Minus();
+	Modus_Zeile_2 Welcher_Modus_Zeile_2();
 
   private:
 

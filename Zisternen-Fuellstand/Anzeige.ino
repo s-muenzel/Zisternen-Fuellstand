@@ -1,16 +1,6 @@
 #include <LiquidCrystal_I2C.h>
 #include "Anzeige.h"
 
-////////////////////////////////////////////
-// Hilfskonstrukt, zum Debuggen
-//#ifdef DEBUG
-//#define D_PRINT      if(true)Serial.print
-//#define D_PRINTLN    if(true)Serial.println
-//#else
-//#define D_PRINT      if(false)Serial.print
-//#define D_PRINTLN    if(false)Serial.println
-//#endif
-
 LiquidCrystal_I2C Lcd(0x27, 16, 2);		// I2C Adresse 0x27, 16 Zeichen, 2 Zeilen
 
 Anzeige::Anzeige() {
@@ -70,41 +60,57 @@ void Anzeige::tick() {
     _Text_Update = false;
   }
   //Licht
-  if (_Licht_ist_an && (millis() > _Timeout_Licht)) {
-    _Licht_ist_an = false;
-    Lcd.noBacklight(); // sicher ist sicher
+  if ( _Timeout_Licht > 0) {
+	  unsigned long Jetzt = millis();
+	  if (_Licht_ist_an) {
+		if (Jetzt > _Timeout_Licht) { // Licht ist an und muss ausgeschaltet werden
+			D_PRINTLN("Licht Aus");
+			_Licht_ist_an = false;
+			Lcd.noBacklight();
+			_Modus = Verbrauch; // zurueck in Grundzustand (Im Blink-Modus immer auf Grundzustand stellen)
+			if (_Blinken_Licht_An > 0) { // Blinken? Dann naechsten Einschaltpunkt festlegen
+				_Timeout_Licht = Jetzt + _Blinken_Licht_Aus;
+			} else						 // sonst timeout auf 0 setzten, damit nichts weiter geschieht.
+				_Timeout_Licht = 0; // 
+		}
+	  } else // Licht ist aus
+		if(Jetzt > _Timeout_Licht) { // Jetzt muss Licht zum Blinken angeschaltet werden
+			D_PRINTLN("Licht An");
+			_Licht_ist_an = false;
+			Lcd.noBacklight();
+			_Timeout_Licht = Jetzt + _Blinken_Licht_An;		
+		} 
   }
-  //////////////// Licht !!!
 }
 
-void Anzeige::Licht_An(unsigned long Dauer) {
-  _Timeout_Licht = millis();
-  if (_Timeout_Licht + Dauer < _Timeout_Licht) {
-    // Ups, genau jetzt ist der Überlauf von millis()
-    _Timeout_Licht = Dauer;
-  } else {
-    _Timeout_Licht += Dauer;
-  }
-  //	D_PRINT(") an, aus bei ");D_PRINTLN(_Timeout_Licht/1000);
+void Anzeige::Licht_An() {
+  _Timeout_Licht = millis() + DAUER_HIGHLIGHT;
+  D_PRINT("Licht an, wieder aus bei ");D_PRINTLN(_Timeout_Licht/1000);
   _Licht_ist_an = true;
-  Lcd.backlight(); // sicher ist sicher
+  Lcd.backlight();
 }
 
 void Anzeige::Licht_Aus() {
+  D_PRINTLN("Licht aus");
   _Timeout_Licht = 0;
   _Licht_ist_an = false;
-  Lcd.noBacklight(); // sicher ist sicher
+  Lcd.noBacklight();
 }
 
 void Anzeige::Blinken(unsigned long Dauer_An, unsigned long Dauer_Aus) {
+  D_PRINT("Blinkmodus mit "); D_PRINT(Dauer_An);
+  D_PRINT("ms (an) und "); D_PRINT(Dauer_Aus);
+  D_PRINTLN("ms (aus)");
   _Blinken_Licht_An = Dauer_An;
   _Blinken_Licht_Aus = Dauer_Aus;
-  // Blinken anschalten??
+  _Timeout_Licht = max(1,_Timeout_Licht); // damit im naechsten tick das Blinken angestossen wird
 }
 
 void Anzeige::Blinken_Aus() {
+  D_PRINTLN("Blink-Modus aus");
   _Blinken_Licht_An = 0;
-  Lcd.noBacklight(); // sicher ist sicher
+  _Timeout_Licht = max(1,_Timeout_Licht); // damit im naechsten tick das Blinken angestossen wird
+//  Lcd.noBacklight(); // sicher ist sicher
 }
 
 void Anzeige::Werte_Zeile_1(int Liter, int Prozent) {
@@ -124,5 +130,41 @@ void Anzeige::Werte_Zeile_2(unsigned long Verbrauch, int Min, int Akt, int Max) 
 void Anzeige::Setze_Modus_Zeile_2(Modus_Zeile_2 Modus) {
   _Modus = Modus;
   _Text_Update = true;
+  Licht_An();
+}
+void Anzeige::Modus_Zeile_2_Plus() {
+	switch(_Modus) {
+	case Verbrauch:
+		_Modus = MinMax;
+		break;
+	case MinMax:
+		_Modus = Reset_MinMax;
+		break;
+	case Reset_MinMax:
+		_Modus = Verbrauch;
+		break;
+	}
+	_Text_Update = true;
+	Licht_An();
+}
+
+void Anzeige::Modus_Zeile_2_Minus() {
+	switch(_Modus) {
+	case Verbrauch:
+		_Modus = Reset_MinMax;
+		break;
+	case MinMax:
+		_Modus = Verbrauch;
+		break;
+	case Reset_MinMax:
+		_Modus = MinMax;
+		break;
+	}
+	_Text_Update = true;
+	Licht_An();
+}
+
+Anzeige::Modus_Zeile_2 Anzeige::Welcher_Modus_Zeile_2() {
+	return _Modus;
 }
 
