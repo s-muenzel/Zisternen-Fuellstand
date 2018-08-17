@@ -6,7 +6,7 @@
 */
 
 #define DEBUG
-
+#define STUB_TEST
 
 // EEPROM: Um Füllstand Max / Min zu speichern. Ggfs. um Gesamt-Wasserverbrauch zu merken
 #include <EEPROM.h>
@@ -41,9 +41,13 @@
 #define INITIAL_MAX_WASSERABSTAND 100 // [cm], nur zum initialisieren (wird real etwa bei 10cm sein)
 #define INITIAL_MIN_WASSERABSTAND 101 // [cm], nur zum initialisieren (wird real etwa bei 180cm sein)
 
-#define INITIAL_ZISTERNE_LEER			600   // [l] Bei diesem Restwasserstand sollte zumindest die Aussenpumpe nur noch Luft ansaugen
-#define INITIAL_ZISTERNE_FAST_LEER	   1200   // [l] Bei diesem Restwasserstand faengt die Anzeige zur Warnung an zu blinken
-
+#ifdef STUB_TEST
+# define INITIAL_ZISTERNE_LEER      65   // [l] Bei diesem Restwasserstand sollte zumindest die Aussenpumpe nur noch Luft ansaugen
+# define INITIAL_ZISTERNE_FAST_LEER     120   // [l] Bei diesem Restwasserstand faengt die Anzeige zur Warnung an zu blinken
+#else
+# define INITIAL_ZISTERNE_LEER      600   // [l] Bei diesem Restwasserstand sollte zumindest die Aussenpumpe nur noch Luft ansaugen
+# define INITIAL_ZISTERNE_FAST_LEER     1200   // [l] Bei diesem Restwasserstand faengt die Anzeige zur Warnung an zu blinken
+#endif
 
 #define WASSER_VERBRAUCH_SCHWELLE 3   // [cm] Wasserverbrauch nur hochzählen, wenn der Wasserspiegel mindestens um x cm gesunken ist
 
@@ -54,13 +58,21 @@
 #define PIN_ECHO 				 11
 
 #define PIN_BUTTON                4   // Push-Button des Rotary Encoders
-#define PIN_ROTARY_A              5   // "A" des Rotary Encoders
-#define PIN_ROTARY_B              6   // "B" des Rotary Encoders
+#define PIN_ROTARY_A              6   // "A" des Rotary Encoders
+#define PIN_ROTARY_B              5   // "B" des Rotary Encoders
 
 #ifdef DEBUG
-#define ZYKLUS_DAUER 5000             // Etwa alle 5 Sekunden messen
+# define ZYKLUS_DAUER 5000             // Etwa alle 5 Sekunden messen
 #else
-#define ZYKLUS_DAUER 60000            // Etwa alle Minute messen
+# define ZYKLUS_DAUER 60000            // Etwa alle Minute messen
+#endif
+
+// DAUER_HIGHLIGHT ist die Zeit, die das Licht angeschaltet wird [ms]
+// ebenso die Zeit, nach der der Modus in den Grundzustand (Verbrauch) zurückfällt
+#ifdef DEBUG
+# define DAUER_HIGHLIGHT         3000
+#else
+# define DAUER_HIGHLIGHT         10000
 #endif
 
 ////////////////////////////////////////////
@@ -266,8 +278,10 @@ void loop() {
         _Anzeige.Werte_Zeile_2(Wasserverbrauch, Min_Wasserabstand, Aktueller_Wasserabstand, Max_Wasserabstand);
 
       if (Restwasser < Zisterne_Leer) {
+        D_PRINT("Zisterne Leer:");D_PRINTLN(Restwasser);
         _Anzeige.Blinken(800, 1200); // schnelles Blinken (0,8s an, 1,2s aus)
       } else if (Restwasser < Zisterner_Fast_Leer) {
+        D_PRINT("Zisterne fast Leer:");D_PRINTLN(Restwasser);
         _Anzeige.Blinken(1000, 5000); // blinken mit 1s an, 5s aus
       } else
         _Anzeige.Blinken_Aus(); // genug Wasser in der Zisterne, kein Blinken

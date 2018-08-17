@@ -1,9 +1,6 @@
 #ifndef ANZEIGE_H
 #define ANZEIGE_H
 
-// DAUER_HIGHLIGHT ist die Zeit, die das Licht angeschaltet wird [ms]
-// ebenso die Zeit, nach der der Modus in den Grundzustand (Verbrauch) zurückfällt
-#define DAUER_HIGHLIGHT         2000
 
 class Anzeige {
   public:

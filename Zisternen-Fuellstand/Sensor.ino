@@ -43,9 +43,9 @@ int Sensor::Lese_Wasserabstand() {
   return NO_ECHO; // nicht genug gute Messungen (Fehler!)
 #else
   Fake_Abstand += Fake_Richtung;
-  if (Fake_Abstand < 80)
+  if (Fake_Abstand < 90)
     Fake_Richtung = 1;
-  if (Fake_Abstand > 120)
+  if (Fake_Abstand > 110)
     Fake_Richtung = -1;
   return Fake_Abstand;
 #endif
