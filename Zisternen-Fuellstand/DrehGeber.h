@@ -18,7 +18,7 @@ class DrehGeber
       Button_Pressed,
       Button_Released,
       Rotated_Plus,
-	  Rotated_Minus
+      Rotated_Minus
     } Change;
 
     // call this function every some milliseconds to detect a state changes of the rotary encoder.
@@ -44,7 +44,7 @@ class DrehGeber
     int _pinA, _pinB; 		// Arduino pins used for the encoder.
     int _pinButton;			// Arduino pin used for button
 
-    int8_t _oldState;			// Combination of (old) PinA + PinB<<1;
+    byte _oldState;			// Combination of (old) PinA + PinB<<1;
     long _position;     		// Counter of position
 
     int _old_buttonState;

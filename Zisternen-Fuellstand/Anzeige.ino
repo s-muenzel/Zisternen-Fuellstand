@@ -44,48 +44,77 @@ void Anzeige::tick() {
         Lcd.print(_Verbrauch);
         Lcd.print(" l");
         break;
-      case MinMax:
+      case Min:
         Lcd.setCursor(0, 1);
         Lcd.print(_Min);
-        Lcd.print("<");
+        Lcd.print("(<");
         Lcd.print(_Akt);
         Lcd.print("<");
         Lcd.print(_Max);
+        Lcd.print(")");
         break;
-      case Reset_MinMax:
+      case Max:
         Lcd.setCursor(0, 1);
-        Lcd.print("Reset Min/Max ?");
+        Lcd.print("(");
+        Lcd.print(_Min);
+        Lcd.print("<");
+        Lcd.print(_Akt);
+        Lcd.print("<)");
+        Lcd.print(_Max);
+        break;
+      case MinMax_Auto:
+        Lcd.setCursor(0, 1);
+        Lcd.print("Min/Max Auto?");
+		D_PRINTLN("MIN MAX AUTO: NOCH AUSPROGRAMMIEREN");
+        break;
+      case Leer:
+        Lcd.setCursor(0, 1);
+        Lcd.print("Leer bei: ");
+        Lcd.print("xxxxx");
+        Lcd.print("l");
+		D_PRINTLN("LEER NOCH AUSPROGRAMMIEREN");
+        break;
+      case Fast_Leer:
+        Lcd.setCursor(0, 1);
+        Lcd.print("Warnung ab: ");
+        Lcd.print("xxxxx");
+        Lcd.print("l");
+		D_PRINTLN("FAST LEER: NOCH AUSPROGRAMMIEREN");
+        break;
+      case Fehler:
+        Lcd.setCursor(0, 1);
+        Lcd.print("Lesefehler Sensor");
         break;
     }
     _Text_Update = false;
   }
   //Licht
   if ( _Timeout_Licht > 0) {
-	  unsigned long Jetzt = millis();
-	  if (_Licht_ist_an) {
-		if (Jetzt > _Timeout_Licht) { // Licht ist an und muss ausgeschaltet werden
-			D_PRINTLN("Licht Aus");
-			_Licht_ist_an = false;
-			Lcd.noBacklight();
-			_Modus = Verbrauch; // zurueck in Grundzustand (Im Blink-Modus immer auf Grundzustand stellen)
-			if (_Blinken_Licht_An > 0) { // Blinken? Dann naechsten Einschaltpunkt festlegen
-				_Timeout_Licht = Jetzt + _Blinken_Licht_Aus;
-			} else						 // sonst timeout auf 0 setzten, damit nichts weiter geschieht.
-				_Timeout_Licht = 0; // 
-		}
-	  } else // Licht ist aus
-		if(Jetzt > _Timeout_Licht) { // Jetzt muss Licht zum Blinken angeschaltet werden
-			D_PRINTLN("Licht An");
-			_Licht_ist_an = false;
-			Lcd.noBacklight();
-			_Timeout_Licht = Jetzt + _Blinken_Licht_An;		
-		} 
+    unsigned long Jetzt = millis();
+    if (_Licht_ist_an) {
+      if (Jetzt > _Timeout_Licht) { // Licht ist an und muss ausgeschaltet werden
+        D_PRINTLN("Licht Aus");
+        _Licht_ist_an = false;
+        Lcd.noBacklight();
+        _Modus = Verbrauch; // zurueck in Grundzustand (Im Blink-Modus immer auf Grundzustand stellen)
+        if (_Blinken_Licht_An > 0) { // Blinken? Dann naechsten Einschaltpunkt festlegen
+          _Timeout_Licht = Jetzt + _Blinken_Licht_Aus;
+        } else						 // sonst timeout auf 0 setzten, damit nichts weiter geschieht.
+          _Timeout_Licht = 0; //
+      }
+    } else // Licht ist aus
+      if (Jetzt > _Timeout_Licht) { // Jetzt muss Licht zum Blinken angeschaltet werden
+        D_PRINTLN("Licht An");
+        _Licht_ist_an = false;
+        Lcd.noBacklight();
+        _Timeout_Licht = Jetzt + _Blinken_Licht_An;
+      }
   }
 }
 
 void Anzeige::Licht_An() {
   _Timeout_Licht = millis() + DAUER_HIGHLIGHT;
-  D_PRINT("Licht an, wieder aus bei ");D_PRINTLN(_Timeout_Licht/1000);
+  D_PRINT("Licht an, wieder aus bei "); D_PRINTLN(_Timeout_Licht / 1000);
   _Licht_ist_an = true;
   Lcd.backlight();
 }
@@ -103,17 +132,17 @@ void Anzeige::Blinken(unsigned long Dauer_An, unsigned long Dauer_Aus) {
   D_PRINTLN("ms (aus)");
   _Blinken_Licht_An = Dauer_An;
   _Blinken_Licht_Aus = Dauer_Aus;
-  _Timeout_Licht = max(1,_Timeout_Licht); // damit im naechsten tick das Blinken angestossen wird
+  _Timeout_Licht = max(1, _Timeout_Licht); // damit im naechsten tick das Blinken angestossen wird
 }
 
 void Anzeige::Blinken_Aus() {
   D_PRINTLN("Blink-Modus aus");
   _Blinken_Licht_An = 0;
-  _Timeout_Licht = max(1,_Timeout_Licht); // damit im naechsten tick das Blinken angestossen wird
-//  Lcd.noBacklight(); // sicher ist sicher
+  _Timeout_Licht = max(1, _Timeout_Licht); // damit im naechsten tick das Blinken angestossen wird
+  //  Lcd.noBacklight(); // sicher ist sicher
 }
 
-void Anzeige::Werte_Zeile_1(int Liter, int Prozent) {
+void Anzeige::Werte_Zeile_1(unsigned int Liter, byte Prozent) {
   _Liter = Liter;
   _Prozent = Prozent;
   _Text_Update = true;
@@ -132,39 +161,65 @@ void Anzeige::Setze_Modus_Zeile_2(Modus_Zeile_2 Modus) {
   _Text_Update = true;
   Licht_An();
 }
+
+
 void Anzeige::Modus_Zeile_2_Plus() {
-	switch(_Modus) {
-	case Verbrauch:
-		_Modus = MinMax;
-		break;
-	case MinMax:
-		_Modus = Reset_MinMax;
-		break;
-	case Reset_MinMax:
-		_Modus = Verbrauch;
-		break;
-	}
-	_Text_Update = true;
-	Licht_An();
+  switch (_Modus) {
+    case Verbrauch:
+      _Modus = Min;
+      break;
+    case Min:
+      _Modus = Max;
+      break;
+    case Max:
+      _Modus = MinMax_Auto;
+      break;
+    case MinMax_Auto:
+      _Modus = Leer;
+      break;
+    case Leer:
+      _Modus = Fast_Leer;
+      break;
+    case Fast_Leer:
+      _Modus = Verbrauch;
+      break;
+    default:
+      _Modus = Verbrauch;
+      break;
+  }
+  _Text_Update = true;
+  Licht_An();
 }
 
 void Anzeige::Modus_Zeile_2_Minus() {
-	switch(_Modus) {
-	case Verbrauch:
-		_Modus = Reset_MinMax;
-		break;
-	case MinMax:
-		_Modus = Verbrauch;
-		break;
-	case Reset_MinMax:
-		_Modus = MinMax;
-		break;
-	}
-	_Text_Update = true;
-	Licht_An();
+  switch (_Modus) {
+    case Verbrauch:
+      _Modus = Fast_Leer;
+      break;
+    case Min:
+      _Modus = Verbrauch;
+      break;
+    case Max:
+      _Modus = Min;
+      break;
+    case MinMax_Auto:
+      _Modus = Max;
+      break;
+    case Leer:
+      _Modus = MinMax_Auto;
+      break;
+    case Fast_Leer:
+      _Modus = Leer;
+      break;
+    default:
+      _Modus = Verbrauch;
+      break;
+  }
+  _Text_Update = true;
+  Licht_An();
 }
 
 Anzeige::Modus_Zeile_2 Anzeige::Welcher_Modus_Zeile_2() {
-	return _Modus;
+  return _Modus;
 }
 

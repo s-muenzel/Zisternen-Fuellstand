@@ -74,39 +74,39 @@ bool DrehGeber::tick(void)
 {
   int sig1 = digitalRead(_pinA);
   int sig2 = digitalRead(_pinB);
-  int8_t thisState = sig1 | (sig2 << 1);
+  byte thisState = sig1 | (sig2 << 1);
 
   if (_oldState != thisState) {
-	switch(KNOBDIR[thisState | (_oldState << 2)]) {
-		case 1:
-			D_PRINTLN("Rotate +");
-			_position += KNOBDIR[thisState | (_oldState << 2)];
-			_oldState = thisState;
-			_Last_Change = Rotated_Plus;
-			return true;
-			break;
-		case -1:
-			D_PRINTLN("Rotate -");
-			_position--;
-			_oldState = thisState;
-			_Last_Change = Rotated_Minus;
-			return true;
-			break;
-		default:
-			break;
-	}
+    switch (KNOBDIR[thisState | (_oldState << 2)]) {
+      case 1:
+        D_PRINTLN("Rotate +");
+        _position += KNOBDIR[thisState | (_oldState << 2)];
+        _oldState = thisState;
+        _Last_Change = Rotated_Plus;
+        return true;
+        break;
+      case -1:
+        D_PRINTLN("Rotate -");
+        _position--;
+        _oldState = thisState;
+        _Last_Change = Rotated_Minus;
+        return true;
+        break;
+      default:
+        break;
+    }
   }
 
   sig1 = digitalRead(_pinButton);
   if ( sig1 != _old_buttonState) {
     _old_buttonState = sig1;
     if (sig1 == HIGH) {
-		D_PRINTLN("Button_Released");
+      D_PRINTLN("Button_Released");
       _Last_Change = Button_Released;
     } else {
-		D_PRINTLN("Button_Pressed");
+      D_PRINTLN("Button_Pressed");
       _Last_Change = Button_Pressed;
-	}
+    }
     return true;
   }
 
