@@ -12,13 +12,16 @@ class Anzeige {
 
     void Licht_An();
     void Licht_Aus();
+	bool ist_Licht_An() { return _Licht_ist_an; };
 
     void Blinken(unsigned long Dauer_An, unsigned long Dauer_Aus);
     void Blinken_Aus();
 
-    void Werte_Zeile_1(unsigned int Liter, byte Prozent);
-
-    void Werte_Zeile_2(unsigned long Verbrauch, int Min, int Akt, int Max);
+    void Werte_Wasserstand(unsigned int Liter, byte Prozent);
+    void Werte_Wasserverbrauch(unsigned long Verbrauch, int Akt);
+    void Werte_WasserAbstand(int Min, int Max);
+    void Werte_Min_Max_Auto(bool MM_A);
+	void Werte_WarnLevel(int Leer, int Fast_Leer);
 
     typedef enum Modus_Zeile_2_e {
       Verbrauch = 0,
@@ -35,6 +38,9 @@ class Anzeige {
     void Modus_Zeile_2_Minus();
     Modus_Zeile_2 Welcher_Modus_Zeile_2();
 
+	bool ist_Editier_Modus() { return _Editier_Modus; };
+	void Editier_Modus(bool An);
+	
   private:
 
     unsigned long _Timeout_Licht;
@@ -47,10 +53,15 @@ class Anzeige {
     int _Min;
     int _Akt;
     int _Max;
+	bool _Min_Max_Auto;
+	int _Leer;
+	int _Fast_Leer;
     unsigned long _Verbrauch;
 
     Modus_Zeile_2 _Modus;
 
+	bool _Editier_Modus;
+	
     bool _Text_Update;
 };
 

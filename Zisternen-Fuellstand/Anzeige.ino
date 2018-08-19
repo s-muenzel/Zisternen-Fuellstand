@@ -19,6 +19,8 @@ Anzeige::Anzeige() {
 
   _Modus = Verbrauch;
 
+  _Editier_Modus = false;
+  
   _Text_Update = false;
 }
 
@@ -37,8 +39,16 @@ void Anzeige::tick() {
     Lcd.setCursor(12, 0);
     Lcd.print(_Prozent);
     Lcd.print("%");
+    D_PRINT("Rest:");
+    D_PRINT(_Liter);
+    D_PRINT("l ");
+    D_PRINT(_Prozent);
+    D_PRINTLN("%");
     switch (_Modus) {
       case Verbrauch:
+	  D_PRINT("XXXXXXXTotal: ");
+      D_PRINT(_Verbrauch);
+      D_PRINTLN(" l");
         Lcd.setCursor(0, 1);
         Lcd.print("Total: ");
         Lcd.print(_Verbrauch);
@@ -52,6 +62,7 @@ void Anzeige::tick() {
         Lcd.print("<");
         Lcd.print(_Max);
         Lcd.print(")");
+        Lcd.setCursor(0, 1);
         break;
       case Max:
         Lcd.setCursor(0, 1);
@@ -61,25 +72,30 @@ void Anzeige::tick() {
         Lcd.print(_Akt);
         Lcd.print("<)  ");
         Lcd.print(_Max);
+        Lcd.setCursor(10, 1);
         break;
       case MinMax_Auto:
         Lcd.setCursor(0, 1);
-        Lcd.print("Min/Max Auto?");
-		D_PRINTLN("MIN MAX AUTO: NOCH AUSPROGRAMMIEREN");
+        Lcd.print("Min/Max Auto? ");
+		if(_Min_Max_Auto)
+			Lcd.print("J");
+		else
+			Lcd.print("N");
+        Lcd.setCursor(15, 1);
         break;
       case Leer:
         Lcd.setCursor(0, 1);
         Lcd.print("Leer bei: ");
-        Lcd.print("xxxxx");
+        Lcd.print(_Leer);
         Lcd.print("l");
-		D_PRINTLN("LEER NOCH AUSPROGRAMMIEREN");
+        Lcd.setCursor(10, 1);
         break;
       case Fast_Leer:
         Lcd.setCursor(0, 1);
         Lcd.print("Warnung: ");
-        Lcd.print("xxxxx");
+        Lcd.print(_Fast_Leer);
         Lcd.print("l");
-		D_PRINTLN("FAST LEER: NOCH AUSPROGRAMMIEREN");
+        Lcd.setCursor(9, 1);
         break;
       case Fehler:
         Lcd.setCursor(0, 1);
@@ -95,6 +111,7 @@ void Anzeige::tick() {
       if (Jetzt > _Timeout_Licht) { // Licht ist an und muss ausgeschaltet werden
         D_PRINTLN("Licht Aus");
         _Licht_ist_an = false;
+		_Editier_Modus = false;
         Lcd.noBacklight();
         _Modus = Verbrauch; // zurueck in Grundzustand (Im Blink-Modus immer auf Grundzustand stellen)
         if (_Blinken_Licht_An > 0) { // Blinken? Dann naechsten Einschaltpunkt festlegen
@@ -123,6 +140,7 @@ void Anzeige::Licht_Aus() {
   D_PRINTLN("Licht aus");
   _Timeout_Licht = 0;
   _Licht_ist_an = false;
+  _Editier_Modus = false;
   Lcd.noBacklight();
 }
 
@@ -145,19 +163,35 @@ void Anzeige::Blinken_Aus() {
   }
 }
 
-void Anzeige::Werte_Zeile_1(unsigned int Liter, byte Prozent) {
+void Anzeige::Werte_Wasserstand(unsigned int Liter, byte Prozent) {
   _Liter = Liter;
   _Prozent = Prozent;
   _Text_Update = true;
 }
 
-void Anzeige::Werte_Zeile_2(unsigned long Verbrauch, int Min, int Akt, int Max) {
-  _Min = Min;
-  _Akt = Akt;
-  _Max = Max;
+void Anzeige::Werte_Wasserverbrauch(unsigned long Verbrauch, int Akt) {
   _Verbrauch = Verbrauch;
+  _Akt = Akt;
   _Text_Update = true;
 }
+
+void Anzeige::Werte_WasserAbstand(int Min, int Max) {
+  _Min = Min;
+  _Max = Max;
+  _Text_Update = true;
+}
+
+void Anzeige::Werte_WarnLevel(int Leer, int Fast_Leer) {
+  _Leer = Leer;
+  _Fast_Leer = Fast_Leer;
+  _Text_Update = true;
+}
+
+void Anzeige::Werte_Min_Max_Auto(bool MM_A) {
+  _Min_Max_Auto = MM_A;
+  _Text_Update = true;
+}
+
 
 void Anzeige::Setze_Modus_Zeile_2(Modus_Zeile_2 Modus) {
   _Modus = Modus;
@@ -226,3 +260,13 @@ Anzeige::Modus_Zeile_2 Anzeige::Welcher_Modus_Zeile_2() {
   return _Modus;
 }
 
+void Anzeige::Editier_Modus(bool An) {
+	_Editier_Modus = An;
+	if(An) {
+		Lcd.cursor();
+		Lcd.blink();
+	} else {
+		Lcd.noCursor();
+		Lcd.noBlink();
+	}
+}

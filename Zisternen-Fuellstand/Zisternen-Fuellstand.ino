@@ -32,21 +32,30 @@
 
 ////////////////////////////////////////////
 // Konstanten
-#define EEPROM_MAXW  8                                         // Addresse im EEPROM wo Maximaler_Wasserstand gespeichert wird
-#define EEPROM_MINW  (EEPROM_MAXW + sizeof(Max_Wasserabstand)) // Addresse im EEPROM wo Minimaler_Wasserstand gespeichert wird
-#define EEPROM_VERW  (EEPROM_MINW + sizeof(Min_Wasserabstand)) // Addresse im EEPROM wo die genutzte Wassermenge gespeichert wird
-#define EEPROM_Z_L   (EEPROM_VERW + sizeof(Wasserverbrauch))   // Addresse im EEPROM wo die genutzte Wassermenge gespeichert wird
-#define EEPROM_Z_F_L (EEPROM_Z_L  + sizeof(Zisterne_Leer))     // Addresse im EEPROM wo die genutzte Wassermenge gespeichert wird
+#define EEPROM_MAXW  8                                          // Addresse im EEPROM wo Maximaler_Wasserstand gespeichert wird
+#define EEPROM_MINW  (EEPROM_MAXW  + sizeof(Max_Wasserabstand)) // Addresse im EEPROM wo Minimaler_Wasserstand gespeichert wird
+#define EEPROM_VERW  (EEPROM_MINW  + sizeof(Min_Wasserabstand)) // Addresse im EEPROM wo die genutzte Wassermenge gespeichert wird
+#define EEPROM_Z_L   (EEPROM_VERW  + sizeof(Wasserverbrauch))   // Addresse im EEPROM wo der Wert für "Zisterne ist leer" gespeichert wird
+#define EEPROM_Z_F_L (EEPROM_Z_L   + sizeof(Zisterne_Leer))     // Addresse im EEPROM wo der Wert für "Zisterne ist fast leer" gespeichert wird
+#define EEPROM_MM_A  (EEPROM_Z_F_L + sizeof(Zisterne_Fast_Leer))// Addresse im EEPROM wo gespeichert wird, ob Min und Max erst ermittelt werden
 
-#define INITIAL_MAX_WASSERABSTAND 100 // [cm], nur zum initialisieren (wird real etwa bei 10cm sein)
-#define INITIAL_MIN_WASSERABSTAND 101 // [cm], nur zum initialisieren (wird real etwa bei 180cm sein)
+#define INITIAL_MAX_WASSERABSTAND 100                           // [cm], nur zum initialisieren (wird real etwa bei 10cm sein)
+#define INITIAL_MIN_WASSERABSTAND 101                           // [cm], nur zum initialisieren (wird real etwa bei 180cm sein)
 
 #ifdef STUB_TEST
-# define INITIAL_ZISTERNE_LEER      65   // [l] Bei diesem Restwasserstand sollte zumindest die Aussenpumpe nur noch Luft ansaugen
-# define INITIAL_ZISTERNE_FAST_LEER     120   // [l] Bei diesem Restwasserstand faengt die Anzeige zur Warnung an zu blinken
+# define LEER_MIN	                       30					// [l], zum Einstellen von Zisterne_Leer
+# define INITIAL_ZISTERNE_LEER             65                   // [l] Bei diesem Restwasserstand sollte zumindest die Aussenpumpe nur noch Luft ansaugen
+# define LEER_MAX	                      100					// [l], zum Einstellen von Zisterne_Leer
+# define FAST_LEER_MIN	                   60					// [l], zum Einstellen von Zisterne_Fast_Leer
+# define INITIAL_ZISTERNE_FAST_LEER       120                   // [l] Bei diesem Restwasserstand faengt die Anzeige zur Warnung an zu blinken
+# define FAST_LEER_MAX	                  130					// [l], zum Einstellen von Zisterne_Fast_Leer
 #else
-# define INITIAL_ZISTERNE_LEER      600   // [l] Bei diesem Restwasserstand sollte zumindest die Aussenpumpe nur noch Luft ansaugen
-# define INITIAL_ZISTERNE_FAST_LEER     1200   // [l] Bei diesem Restwasserstand faengt die Anzeige zur Warnung an zu blinken
+# define LEER_MIN	                       30					// [l], zum Einstellen von Zisterne_Leer
+# define INITIAL_ZISTERNE_LEER            600                   // [l] Bei diesem Restwasserstand sollte zumindest die Aussenpumpe nur noch Luft ansaugen
+# define LEER_MAX	                     1000					// [l], zum Einstellen von Zisterne_Leer
+# define FAST_LEER_MIN	                  600					// [l], zum Einstellen von Zisterne_Fast_Leer
+# define INITIAL_ZISTERNE_FAST_LEER      1000                   // [l] Bei diesem Restwasserstand faengt die Anzeige zur Warnung an zu blinken
+# define FAST_LEER_MAX	                 1300					// [l], zum Einstellen von Zisterne_Fast_Leer
 #endif
 
 #define WASSER_VERBRAUCH_SCHWELLE 3   // [cm] Wasserverbrauch nur hochzählen, wenn der Wasserspiegel mindestens um x cm gesunken ist
@@ -95,7 +104,8 @@ int Min_Wasserabstand;                // [cm] - Zentimeter Abstand zum Sensor (g
 int Max_Wasserabstand;                // [cm] - Zentimeter Abstand zum Sensor (kleiner als Minimaler_Wasserstand)
 unsigned long Wasserverbrauch;        // [l]  - aufsummiert die Menge an Wasser, die wir aus der Zisterne entnommen haben
 unsigned int Zisterne_Leer;           // [l]  - Ab dieser Restwassermenge bewerte ich die Zisterne als "LEER"
-unsigned int Zisterner_Fast_Leer;	  // [l]  - Welcher Restwassermenge ist die Warnschwelle
+unsigned int Zisterne_Fast_Leer;	  // [l]  - Welcher Restwassermenge ist die Warnschwelle
+bool Min_Max_Auto;					  // []   - Wird Min-Max ermittelt oder ist es bereits fest
 
 
 // Transiente Werte
@@ -104,6 +114,12 @@ int Letzter_Wasserabstand = 0;        // [cm] - Letzte Messung, bei der der Wass
 unsigned long Naechste_Messung = 0;   // [ms] - Zeitpunkt der nächsten Messung (nach einer Messung + ZYKLUS_DAUER)
 unsigned long Letzter_Wasserverbrauch;// [l]  - Wann wurde das EEPROM das letzte Mal geschrieben
 
+union union_T {
+	bool b;
+	unsigned long ul;
+	unsigned int ui;
+	int i;
+} _Temp_;		 					  // Re-Use für alle Einstellungen beim "Editier_Modus"
 
 
 ///////////////////////////////////////////
@@ -151,7 +167,8 @@ void Lese_EEPROM() {
   EEPROM.get(EEPROM_MINW,  Min_Wasserabstand);
   EEPROM.get(EEPROM_VERW,  Wasserverbrauch);
   EEPROM.get(EEPROM_Z_L,   Zisterne_Leer);
-  EEPROM.get(EEPROM_Z_F_L, Zisterner_Fast_Leer);
+  EEPROM.get(EEPROM_Z_F_L, Zisterne_Fast_Leer);
+  EEPROM.get(EEPROM_MM_A,  Min_Max_Auto);
 
   D_PRINT("Lese EEPROM: Min("); D_PRINT(EEPROM_MINW);
   D_PRINT(")="); D_PRINT(Min_Wasserabstand);
@@ -162,7 +179,9 @@ void Lese_EEPROM() {
   D_PRINT(" Leer=("); D_PRINT(EEPROM_Z_L);
   D_PRINT(")="); D_PRINT(Zisterne_Leer);
   D_PRINT(" Fast_Leer("); D_PRINT(EEPROM_Z_L);
-  D_PRINT(")="); D_PRINTLN(Zisterner_Fast_Leer);
+  D_PRINT(")="); D_PRINT(Zisterne_Fast_Leer);
+  D_PRINT(" Min_Max_Auto("); D_PRINT(EEPROM_MM_A);
+  D_PRINT(")="); D_PRINTLN(Min_Max_Auto);
 }
 
 void Initialisiere_EEPROM() {
@@ -170,20 +189,25 @@ void Initialisiere_EEPROM() {
   Max_Wasserabstand = INITIAL_MAX_WASSERABSTAND;
   Wasserverbrauch = 0;
   Zisterne_Leer = INITIAL_ZISTERNE_LEER;
-  Zisterner_Fast_Leer = INITIAL_ZISTERNE_FAST_LEER;
+  Zisterne_Fast_Leer = INITIAL_ZISTERNE_FAST_LEER;
+  Min_Max_Auto = true;
 
   D_PRINT("Initialisiere EEPROM: Min("); D_PRINT(EEPROM_MINW);
   D_PRINT(")="); D_PRINT(INITIAL_MIN_WASSERABSTAND);
   D_PRINT(" Max("); D_PRINT(EEPROM_MAXW);
   D_PRINT(")="); D_PRINT(INITIAL_MAX_WASSERABSTAND);
   D_PRINT(" Verbrauch("); D_PRINT(EEPROM_VERW);
-  D_PRINT(")="); D_PRINTLN(Wasserverbrauch);
+  D_PRINT(")="); D_PRINT(Wasserverbrauch);
+  D_PRINT(" Min_Max_Auto("); D_PRINT(EEPROM_MM_A);
+  D_PRINT(")="); D_PRINTLN(Min_Max_Auto);
+  
 
-  EEPROM.put(EEPROM_MAXW, Max_Wasserabstand);
-  EEPROM.put(EEPROM_MINW, Min_Wasserabstand);
-  EEPROM.put(EEPROM_VERW, Wasserverbrauch);
+  EEPROM.put(EEPROM_MAXW,  Max_Wasserabstand);
+  EEPROM.put(EEPROM_MINW,  Min_Wasserabstand);
+  EEPROM.put(EEPROM_VERW,  Wasserverbrauch);
   EEPROM.put(EEPROM_Z_L,   Zisterne_Leer);
-  EEPROM.put(EEPROM_Z_F_L, Zisterner_Fast_Leer);
+  EEPROM.put(EEPROM_Z_F_L, Zisterne_Fast_Leer);
+  EEPROM.put(EEPROM_MM_A,  Min_Max_Auto);
 }
 
 void setup() {
@@ -203,6 +227,13 @@ void setup() {
 
   // Start des Displays
   _Anzeige.begin();
+  delay(100);
+  unsigned int Restwasser = Liter(Max_Wasserabstand, Letzter_Wasserabstand);
+  _Anzeige.Werte_Wasserstand(Restwasser, Fuellstand());
+  _Anzeige.Werte_Wasserverbrauch(Wasserverbrauch,Letzter_Wasserabstand);
+  _Anzeige.Werte_WasserAbstand(Min_Wasserabstand,Max_Wasserabstand);
+  _Anzeige.Werte_Min_Max_Auto(Min_Max_Auto);
+  _Anzeige.Werte_WarnLevel(Zisterne_Leer, Zisterne_Fast_Leer);
 }
 
 void loop() {
@@ -218,7 +249,56 @@ void loop() {
 		// Falls "Bereich_Aendern" auf true und Modus "MinMax", "Reset_MinMax", dann entsprechende Werte hochzaehlen
 		// Falls Modus == Verbrauch oder Fehler, dann "Bereich_Aendern" auf false und Modus wechseln
 		// Falls Modus "MinMax" 
-        _Anzeige.Modus_Zeile_2_Plus();
+		switch(_Anzeige.Welcher_Modus_Zeile_2()) {
+		case Anzeige::Min:
+			if(_Anzeige.ist_Editier_Modus()) {
+				_Temp_.ul += 1;
+			} else {
+				_Anzeige.Modus_Zeile_2_Plus();
+			}
+			break;
+		case Anzeige::Max:
+			if(_Anzeige.ist_Editier_Modus()) {
+				_Temp_.ul += 1;
+			} else {
+				_Anzeige.Modus_Zeile_2_Plus();
+			}
+			break;
+		case Anzeige::MinMax_Auto:
+			if(_Anzeige.ist_Editier_Modus()) {
+				_Temp_.b = !_Temp_.b;
+			} else {
+				_Anzeige.Modus_Zeile_2_Plus();
+			}
+			break;
+		case Anzeige::Leer:
+			if(_Anzeige.ist_Editier_Modus()) {
+				_Temp_.ul += 30;
+				if(_Temp_.ul > LEER_MAX ) {
+					_Temp_.ul = LEER_MIN;
+				}
+			} else {
+				_Anzeige.Modus_Zeile_2_Plus();
+			}
+			break;
+		case Anzeige::Fast_Leer:
+			if(_Anzeige.ist_Editier_Modus()) {
+				_Temp_.ul += 30;
+				if(_Temp_.ul > FAST_LEER_MAX ) {
+					_Temp_.ul = FAST_LEER_MIN;
+				}
+			} else {
+				_Anzeige.Modus_Zeile_2_Plus();
+			}
+			break;
+		case Anzeige::Verbrauch:
+			_Anzeige.Modus_Zeile_2_Plus();
+			break;
+		case Anzeige::Fehler:
+			_Anzeige.Modus_Zeile_2_Plus();
+			// nix besonderes
+			break;
+		}
         break;
       case DrehGeber::Rotated_Minus:	// Drehung nach links
         D_PRINT("Drehung links:"); D_PRINTLN(drehRegler.getPosition());
@@ -228,7 +308,53 @@ void loop() {
         D_PRINTLN("Knopf gedrueckt");
 		// Falls "Bereich_Aendern" true und Modus "MinMax", dann neuen Wert speichern, Bereich_Aendern auf false
 		// Falls Modus == Verbrauch, dann "Bereich_Aendern" auf false
-		// Falls Modus != Verbrauch, dann Modus-Abhängig "Bereich_Aendern" umstellen
+		// Falls Modus != Verbrauch, dann Modus-Abhängig "Bereich_Aendern" umstellen#
+		switch(_Anzeige.Welcher_Modus_Zeile_2()) {
+		case Anzeige::Min:
+			break;
+		case Anzeige::Max:
+			break;
+		case Anzeige::MinMax_Auto:
+			if(_Anzeige.ist_Editier_Modus()) {
+				if(Min_Max_Auto != _Temp_.b) {
+					Min_Max_Auto = _Temp_.b;
+					EEPROM.put(EEPROM_MM_A,  Min_Max_Auto);
+				}
+			} else {
+				_Temp_.b = Min_Max_Auto;
+				_Anzeige.Werte_Min_Max_Auto(_Temp_.b);
+				_Anzeige.Editier_Modus(true);
+			}
+			break;
+		case Anzeige::Leer:
+			if(_Anzeige.ist_Editier_Modus()) {
+				if(Zisterne_Leer != _Temp_.ul) {
+					Zisterne_Leer = _Temp_.ul;
+					EEPROM.put(EEPROM_Z_L, Zisterne_Leer);
+				}
+			} else {
+				_Temp_.ul = Zisterne_Leer;
+				_Anzeige.Werte_WarnLevel(_Temp_.ul, Zisterne_Fast_Leer);
+				_Anzeige.Editier_Modus(true);
+			}
+			break;
+		case Anzeige::Fast_Leer:
+			if(_Anzeige.ist_Editier_Modus()) {
+				if(Zisterne_Fast_Leer != _Temp_.ul) {
+					Zisterne_Fast_Leer = _Temp_.ul;
+					EEPROM.put(EEPROM_Z_F_L, Zisterne_Fast_Leer);
+				}
+			} else {
+				_Temp_.ul = Zisterne_Fast_Leer;
+				_Anzeige.Werte_WarnLevel(Zisterne_Leer, _Temp_.ul);
+				_Anzeige.Editier_Modus(true);
+			}
+			break;
+		case Anzeige::Verbrauch:
+		case Anzeige::Fehler:
+			// nix besonderes
+			break;
+		}
         _Anzeige.Licht_An();
         break;
       case DrehGeber::Button_Released:	// Knopf losgelassen
@@ -257,30 +383,32 @@ void loop() {
 
       // Umrechnen
       // ggfs. Min / Max anpassen
-      if (Aktueller_Wasserabstand > Max_Wasserabstand) {
-        D_PRINT("Max Wasserabstand im EEPROM auf "); D_PRINT(Aktueller_Wasserabstand); D_PRINTLN(" gesetzt");
-        Max_Wasserabstand = Aktueller_Wasserabstand;
-        EEPROM.put(EEPROM_MAXW, Max_Wasserabstand);
-        _Anzeige.Werte_Zeile_2(Wasserverbrauch, Min_Wasserabstand, Aktueller_Wasserabstand, Max_Wasserabstand);
-      } else if (Aktueller_Wasserabstand < Min_Wasserabstand) {
-        D_PRINT("Min Wasserabstand im EEPROM auf "); D_PRINT(Aktueller_Wasserabstand); D_PRINTLN(" gesetzt");
-        Min_Wasserabstand = Aktueller_Wasserabstand;
-        EEPROM.put(EEPROM_MINW, Min_Wasserabstand);
-        _Anzeige.Werte_Zeile_2(Wasserverbrauch, Min_Wasserabstand, Aktueller_Wasserabstand, Max_Wasserabstand);
-      }
+	  if(Min_Max_Auto) {
+		  if (Aktueller_Wasserabstand > Max_Wasserabstand) {
+			D_PRINT("Max Wasserabstand im EEPROM auf "); D_PRINT(Aktueller_Wasserabstand); D_PRINTLN(" gesetzt");
+			Max_Wasserabstand = Aktueller_Wasserabstand;
+			EEPROM.put(EEPROM_MAXW, Max_Wasserabstand);
+	        _Anzeige.Werte_Wasserverbrauch(Min_Wasserabstand, Max_Wasserabstand);
+		  } else if (Aktueller_Wasserabstand < Min_Wasserabstand) {
+			D_PRINT("Min Wasserabstand im EEPROM auf "); D_PRINT(Aktueller_Wasserabstand); D_PRINTLN(" gesetzt");
+			Min_Wasserabstand = Aktueller_Wasserabstand;
+			EEPROM.put(EEPROM_MINW, Min_Wasserabstand);
+			_Anzeige.Werte_WasserAbstand(Min_Wasserabstand, Max_Wasserabstand);
+		  }
+	  }
 
       unsigned int Restwasser = Liter(Max_Wasserabstand, Aktueller_Wasserabstand);
       // Dem Display die neuen Werte geben
-      _Anzeige.Werte_Zeile_1(Restwasser, Fuellstand());
+      _Anzeige.Werte_Wasserstand(Restwasser, Fuellstand());
 
       // Wasserverbrauch addieren
       if (Wasserverbrauch_Aktualisieren())
-        _Anzeige.Werte_Zeile_2(Wasserverbrauch, Min_Wasserabstand, Aktueller_Wasserabstand, Max_Wasserabstand);
+        _Anzeige.Werte_Wasserverbrauch(Wasserverbrauch, Aktueller_Wasserabstand);
 
       if (Restwasser < Zisterne_Leer) {
         D_PRINT("Zisterne Leer:");D_PRINTLN(Restwasser);
         _Anzeige.Blinken(800, 1200); // schnelles Blinken (0,8s an, 1,2s aus)
-      } else if (Restwasser < Zisterner_Fast_Leer) {
+      } else if (Restwasser < Zisterne_Fast_Leer) {
         D_PRINT("Zisterne fast Leer:");D_PRINTLN(Restwasser);
         _Anzeige.Blinken(1000, 5000); // blinken mit 1s an, 5s aus
       } else
