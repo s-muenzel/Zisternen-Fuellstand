@@ -33,35 +33,21 @@ void Anzeige::tick() {
   if (	_Text_Update) {
     Lcd.clear();
     Lcd.setCursor(0, 0);
-    Lcd.print("Rest:");
-    Lcd.print(_Liter);
-    Lcd.print("l");
+    Lcd.print("Rest:"); Lcd.print(_Liter); Lcd.print("l");
     Lcd.setCursor(12, 0);
-    Lcd.print(_Prozent);
-    Lcd.print("%");
-    D_PRINT("Rest:");
-    D_PRINT(_Liter);
-    D_PRINT("l ");
-    D_PRINT(_Prozent);
-    D_PRINTLN("%");
+    Lcd.print(_Prozent); Lcd.print("%");
+    D_P_ANZ("Rest:"); D_P_ANZ(_Liter); D_P_ANZ("l "); D_P_ANZ(_Prozent); D_P_ANZLN("%");
     switch (_Modus) {
       case Verbrauch:
-	  D_PRINT("XXXXXXXTotal: ");
-      D_PRINT(_Verbrauch);
-      D_PRINTLN(" l");
+		D_P_ANZ("Total: "); D_P_ANZ(_Verbrauch); D_P_ANZLN(" l");
         Lcd.setCursor(0, 1);
-        Lcd.print("Total: ");
-        Lcd.print(_Verbrauch);
-        Lcd.print(" l");
+        Lcd.print("Total: "); Lcd.print(_Verbrauch); Lcd.print(" l");
         break;
       case Min:
         Lcd.setCursor(0, 1);
-        Lcd.print(_Min);
-        Lcd.print("  (<");
-        Lcd.print(_Akt);
-        Lcd.print("<");
-        Lcd.print(_Max);
-        Lcd.print(")");
+		D_P_ANZ("Total: "); D_P_ANZ(_Verbrauch); D_P_ANZLN(" l");
+        D_P_ANZ(_Min); D_P_ANZ("  (<"); D_P_ANZ(_Akt); D_P_ANZ("<"); D_P_ANZ(_Max); D_P_ANZLN(")");
+        Lcd.print(_Min); Lcd.print("  (<"); Lcd.print(_Akt); Lcd.print("<"); Lcd.print(_Max); Lcd.print(")");
         Lcd.setCursor(0, 1);
         break;
       case Max:
@@ -109,7 +95,7 @@ void Anzeige::tick() {
     unsigned long Jetzt = millis();
     if (_Licht_ist_an) {
       if (Jetzt > _Timeout_Licht) { // Licht ist an und muss ausgeschaltet werden
-        D_PRINTLN("Licht Aus");
+        D_P_ANZLN("Licht Aus");
         _Licht_ist_an = false;
 		_Editier_Modus = false;
         Lcd.noBacklight();
@@ -121,7 +107,7 @@ void Anzeige::tick() {
       }
     } else // Licht ist aus
       if (Jetzt > _Timeout_Licht) { // Jetzt muss Licht zum Blinken angeschaltet werden
-        D_PRINTLN("Licht An");
+        D_P_ANZLN("Licht An");
         _Licht_ist_an = true;
         Lcd.backlight();
         _Timeout_Licht = Jetzt + _Blinken_Licht_An;
@@ -131,13 +117,13 @@ void Anzeige::tick() {
 
 void Anzeige::Licht_An() {
   _Timeout_Licht = millis() + DAUER_HIGHLIGHT;
-  D_PRINT("Licht an, wieder aus bei "); D_PRINTLN(_Timeout_Licht / 1000);
+  D_P_ANZ("Licht an, wieder aus bei "); D_P_ANZLN(_Timeout_Licht / 1000);
   _Licht_ist_an = true;
   Lcd.backlight();
 }
 
 void Anzeige::Licht_Aus() {
-  D_PRINTLN("Licht aus");
+  D_P_ANZLN("Licht aus");
   _Timeout_Licht = 0;
   _Licht_ist_an = false;
   _Editier_Modus = false;
@@ -145,9 +131,9 @@ void Anzeige::Licht_Aus() {
 }
 
 void Anzeige::Blinken(unsigned long Dauer_An, unsigned long Dauer_Aus) {
-  D_PRINT("Blinkmodus mit "); D_PRINT(Dauer_An);
-  D_PRINT("ms (an) und "); D_PRINT(Dauer_Aus);
-  D_PRINTLN("ms (aus)");
+  D_P_ANZ("Blinkmodus mit "); D_P_ANZ(Dauer_An);
+  D_P_ANZ("ms (an) und "); D_P_ANZ(Dauer_Aus);
+  D_P_ANZLN("ms (aus)");
   if ( _Blinken_Licht_An != Dauer_An ) {
     _Blinken_Licht_An = Dauer_An;
     _Blinken_Licht_Aus = Dauer_Aus;
@@ -156,7 +142,7 @@ void Anzeige::Blinken(unsigned long Dauer_An, unsigned long Dauer_Aus) {
 }
 
 void Anzeige::Blinken_Aus() {
-  D_PRINTLN("Blink-Modus aus");
+  D_P_ANZLN("Blink-Modus aus");
   if(_Blinken_Licht_An > 0) {
     _Blinken_Licht_An = 0;
     _Timeout_Licht = max(1, _Timeout_Licht); // damit im naechsten tick das Blinken angestossen wird
