@@ -5,11 +5,11 @@
   // ---------------------------------------------------------------------------
 */
 
-#define DEBUG
-#define STUB_TEST
+//#define DEBUG
+//#define STUB_TEST
 //#define DEBUG_DREHGEBER
 //#define DEBUG_ANZEIGE
-#define  DEBUG_USER_INPUT
+//#define  DEBUG_USER_INPUT
 
 // Zur besseren Lesbarkeit - Macros fuer Serielles Debuggen
 #include "Debug.h"
@@ -34,10 +34,14 @@
 #define EEPROM_Z_F_L (EEPROM_Z_L   + sizeof(Zisterne_Leer))     // Addresse im EEPROM wo der Wert für "Zisterne ist fast leer" gespeichert wird
 #define EEPROM_MM_A  (EEPROM_Z_F_L + sizeof(Zisterne_Fast_Leer))// Addresse im EEPROM wo gespeichert wird, ob Min und Max erst ermittelt werden
 
-#define INITIAL_MAX_WASSERABSTAND 100                           // [cm], nur zum initialisieren (wird real etwa bei 10cm sein)
-#define INITIAL_MIN_WASSERABSTAND 101                           // [cm], nur zum initialisieren (wird real etwa bei 180cm sein)
 
 #ifdef STUB_TEST
+# define MAX_MIN                           99
+# define INITIAL_MAX_WASSERABSTAND        100                   // [cm], nur zum initialisieren (wird real etwa bei 10cm sein)
+# define MAX_MAX                          110
+# define MIN_MIN                           90
+# define INITIAL_MIN_WASSERABSTAND        101                   // [cm], nur zum initialisieren (wird real etwa bei 180cm sein)
+# define MIN_MAX                          101
 # define LEER_MIN	                       30					// [l], zum Einstellen von Zisterne_Leer
 # define INITIAL_ZISTERNE_LEER             65                   // [l] Bei diesem Restwasserstand sollte zumindest die Aussenpumpe nur noch Luft ansaugen
 # define LEER_MAX	                      100					// [l], zum Einstellen von Zisterne_Leer
@@ -45,6 +49,12 @@
 # define INITIAL_ZISTERNE_FAST_LEER       120                   // [l] Bei diesem Restwasserstand faengt die Anzeige zur Warnung an zu blinken
 # define FAST_LEER_MAX	                  130					// [l], zum Einstellen von Zisterne_Fast_Leer
 #else
+# define MAX_MIN	                      150
+# define INITIAL_MAX_WASSERABSTAND        160                   // [cm], nur zum initialisieren (wird real etwa bei 10cm sein)
+# define MAX_MAX                          190
+# define MIN_MIN				            1
+# define INITIAL_MIN_WASSERABSTAND         30                   // [cm], nur zum initialisieren (wird real etwa bei 180cm sein)
+# define MIN_MAX                           50
 # define LEER_MIN	                       30					// [l], zum Einstellen von Zisterne_Leer
 # define INITIAL_ZISTERNE_LEER            600                   // [l] Bei diesem Restwasserstand sollte zumindest die Aussenpumpe nur noch Luft ansaugen
 # define LEER_MAX	                     1000					// [l], zum Einstellen von Zisterne_Leer
@@ -242,16 +252,24 @@ void loop() {
 			break;
 		case Anzeige::Min:
 			if(_Anzeige.ist_Editier_Modus()) {
-				_Temp_.ul += 1;
-				_Anzeige.Werte_WasserAbstand(_Temp_.ul,Max_Wasserabstand);				
+				_Temp_.i += 1;
+				if(_Temp_.i > MIN_MAX ) {
+					_Temp_.i = MIN_MIN;
+				}
+				_Anzeige.Werte_WasserAbstand(_Temp_.i,Max_Wasserabstand);
+				_Anzeige.Licht_An();
 			} else {
 				_Anzeige.Modus_Zeile_2_Plus();
 			}
 			break;
 		case Anzeige::Max:
 			if(_Anzeige.ist_Editier_Modus()) {
-				_Temp_.ul += 1;
-				_Anzeige.Werte_WasserAbstand(Min_Wasserabstand,_Temp_.ul);
+				_Temp_.i += 1;
+				if(_Temp_.i > MAX_MAX ) {
+					_Temp_.i = MAX_MIN;
+				}
+				_Anzeige.Werte_WasserAbstand(Min_Wasserabstand,_Temp_.i);
+				_Anzeige.Licht_An();
 			} else {
 				_Anzeige.Modus_Zeile_2_Plus();
 			}
@@ -260,6 +278,7 @@ void loop() {
 			if(_Anzeige.ist_Editier_Modus()) {
 				_Temp_.b = !_Temp_.b;
 				_Anzeige.Werte_Min_Max_Auto(_Temp_.b);
+				_Anzeige.Licht_An();
 			} else {
 				_Anzeige.Modus_Zeile_2_Plus();
 			}
@@ -271,6 +290,7 @@ void loop() {
 					_Temp_.ul = LEER_MIN;
 				}
 				_Anzeige.Werte_WarnLevel(_Temp_.ul,Zisterne_Fast_Leer);
+				_Anzeige.Licht_An();
 			} else {
 				_Anzeige.Modus_Zeile_2_Plus();
 			}
@@ -282,6 +302,7 @@ void loop() {
 					_Temp_.ul = FAST_LEER_MIN;
 				}
 				_Anzeige.Werte_WarnLevel(Zisterne_Leer,_Temp_.ul);
+				_Anzeige.Licht_An();
 			} else {
 				_Anzeige.Modus_Zeile_2_Plus();
 			}

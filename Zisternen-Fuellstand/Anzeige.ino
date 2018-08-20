@@ -99,6 +99,8 @@ void Anzeige::tick() {
         _Licht_ist_an = false;
 		_Editier_Modus = false;
         Lcd.noBacklight();
+		Lcd.noCursor();
+		Lcd.noBlink();
         _Modus = Verbrauch; // zurueck in Grundzustand (Im Blink-Modus immer auf Grundzustand stellen)
         if (_Blinken_Licht_An > 0) { // Blinken? Dann naechsten Einschaltpunkt festlegen
           _Timeout_Licht = Jetzt + _Blinken_Licht_Aus;
@@ -147,6 +149,8 @@ void Anzeige::Blinken_Aus() {
     _Blinken_Licht_An = 0;
     _Timeout_Licht = max(1, _Timeout_Licht); // damit im naechsten tick das Blinken angestossen wird
   }
+	Lcd.noCursor();
+	Lcd.noBlink();
 }
 
 void Anzeige::Werte_Wasserstand(unsigned int Liter, byte Prozent) {
