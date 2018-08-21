@@ -33,13 +33,18 @@ int Sensor::Lese_Wasserabstand() {
   byte Gut = 0;
   for (byte i = 0; i < MAX_MESS_VERSUCHE; i++) {
     mSekunden = _HC_SR04.ping();
+	D_P_SEN("Sensor: ");D_P_SENLN(NewPing::convert_cm(mSekunden));
     if ((mSekunden > MIN_IN_MS) && (mSekunden < MAX_IN_MS)) {
       mSekunden_alle += mSekunden;
       Gut++;
-      if (Gut >= MIN_GUT_MESSUNG)
-        return NewPing::convert_cm(mSekunden_alle) / MIN_GUT_MESSUNG;
+      if (Gut >= MIN_GUT_MESSUNG) {
+		D_P_SEN("Gute Messungen: "); D_P_SENLN(Gut);
+        return NewPing::convert_cm(mSekunden_alle/ Gut);
+	  }
+	  delay(100);
     }
   }
+  D_P_SEN("FAIL: Gute Messungen: "); D_P_SENLN(Gut);
   return NO_ECHO; // nicht genug gute Messungen (Fehler!)
 #else
   Fake_Abstand += Fake_Richtung;

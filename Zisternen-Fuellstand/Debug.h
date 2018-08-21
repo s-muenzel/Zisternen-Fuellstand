@@ -11,6 +11,14 @@
 #define D_PRINTLN(a)    
 #endif
 
+#ifdef DEBUG_SENSOR
+#define D_P_SEN(a)   D_PRINT(a)
+#define D_P_SENLN(a) D_PRINTLN(a)
+#else
+#define D_P_SEN(a)
+#define D_P_SENLN(a)
+#endif
+
 #ifdef DEBUG_EEPROM
 #define D_P_EEP(a)   D_PRINT(a)
 #define D_P_EEPLN(a) D_PRINTLN(a)

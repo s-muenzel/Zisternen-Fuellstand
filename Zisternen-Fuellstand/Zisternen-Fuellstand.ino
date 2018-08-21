@@ -10,6 +10,8 @@
 //#define DEBUG_DREHGEBER
 //#define DEBUG_ANZEIGE
 //#define  DEBUG_USER_INPUT
+#define DEBUG_EEPROM
+#define DEBUG_SENSOR
 
 // Zur besseren Lesbarkeit - Macros fuer Serielles Debuggen
 #include "Debug.h"
