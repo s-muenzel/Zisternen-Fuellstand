@@ -5,7 +5,7 @@
   // ---------------------------------------------------------------------------
 */
 
-//#define DEBUG
+#define DEBUG
 //#define STUB_TEST
 //#define DEBUG_DREHGEBER
 //#define DEBUG_ANZEIGE
@@ -27,7 +27,11 @@
 
 ////////////////////////////////////////////
 // Konstanten
-#define EEPROM_MAXW  8                                          // Addresse im EEPROM wo Maximaler_Wasserstand gespeichert wird
+#ifdef STUB_TEXT 
+# define EEPROM_MAXW  0                                         // Addresse im EEPROM wo Maximaler_Wasserstand gespeichert wird (disjunkt STUB_TEST / echter Sensor)
+#else
+# define EEPROM_MAXW  32                                        // Addresse im EEPROM wo Maximaler_Wasserstand gespeichert wird
+#endif
 #define EEPROM_MINW  (EEPROM_MAXW  + sizeof(Max_Wasserabstand)) // Addresse im EEPROM wo Minimaler_Wasserstand gespeichert wird
 #define EEPROM_VERW  (EEPROM_MINW  + sizeof(Min_Wasserabstand)) // Addresse im EEPROM wo die genutzte Wassermenge gespeichert wird
 #define EEPROM_Z_L   (EEPROM_VERW  + sizeof(Wasserverbrauch))   // Addresse im EEPROM wo der Wert für "Zisterne ist leer" gespeichert wird
@@ -36,12 +40,12 @@
 
 
 #ifdef STUB_TEST
-# define MAX_MIN                           99
-# define INITIAL_MAX_WASSERABSTAND        100                   // [cm], nur zum initialisieren (wird real etwa bei 10cm sein)
-# define MAX_MAX                          110
-# define MIN_MIN                           90
-# define INITIAL_MIN_WASSERABSTAND        101                   // [cm], nur zum initialisieren (wird real etwa bei 180cm sein)
-# define MIN_MAX                          101
+# define MAX_MIN                          100					// [cm], Um den Wertebereich Max-Wasserabstand einzugrenzen
+# define INITIAL_MAX_WASSERABSTAND        101                   // [cm], nur zum initialisieren (wird real etwa bei 180cm sein)
+# define MAX_MAX                          110					// [cm], Um den Wertebereich Max-Wasserabstand einzugrenzen
+# define MIN_MIN                           90					// [cm], Um den Wertebereich Min-Wasserabstand einzugrenzen
+# define INITIAL_MIN_WASSERABSTAND         98                   // [cm], nur zum initialisieren (wird real etwa bei 10cm sein)
+# define MIN_MAX                           99					// [cm], Um den Wertebereich Min-Wasserabstand einzugrenzen
 # define LEER_MIN	                       30					// [l], zum Einstellen von Zisterne_Leer
 # define INITIAL_ZISTERNE_LEER             65                   // [l] Bei diesem Restwasserstand sollte zumindest die Aussenpumpe nur noch Luft ansaugen
 # define LEER_MAX	                      100					// [l], zum Einstellen von Zisterne_Leer
@@ -49,12 +53,12 @@
 # define INITIAL_ZISTERNE_FAST_LEER       120                   // [l] Bei diesem Restwasserstand faengt die Anzeige zur Warnung an zu blinken
 # define FAST_LEER_MAX	                  130					// [l], zum Einstellen von Zisterne_Fast_Leer
 #else
-# define MAX_MIN	                      150
-# define INITIAL_MAX_WASSERABSTAND        160                   // [cm], nur zum initialisieren (wird real etwa bei 10cm sein)
-# define MAX_MAX                          190
-# define MIN_MIN				            1
-# define INITIAL_MIN_WASSERABSTAND         30                   // [cm], nur zum initialisieren (wird real etwa bei 180cm sein)
-# define MIN_MAX                           50
+# define MAX_MIN	                      150                   // [cm], Um den Wertebereich Max-Wasserabstand einzugrenzen
+# define INITIAL_MAX_WASSERABSTAND        160                   // [cm], nur zum initialisieren (wird real etwa bei 180cm sein)
+# define MAX_MAX                          190                   // [cm], Um den Wertebereich Max-Wasserabstand einzugrenzen
+# define MIN_MIN				            1                   // [cm], Um den Wertebereich Max-Wasserabstand einzugrenzen
+# define INITIAL_MIN_WASSERABSTAND         30                   // [cm], nur zum initialisieren (wird real etwa bei 10cm sein)
+# define MIN_MAX                           50                   // [cm], Um den Wertebereich Max-Wasserabstand einzugrenzen
 # define LEER_MIN	                       30					// [l], zum Einstellen von Zisterne_Leer
 # define INITIAL_ZISTERNE_LEER            600                   // [l] Bei diesem Restwasserstand sollte zumindest die Aussenpumpe nur noch Luft ansaugen
 # define LEER_MAX	                     1000					// [l], zum Einstellen von Zisterne_Leer
@@ -130,7 +134,7 @@ union union_T {
 ///////////////////////////////////////////
 // Hier beginnen die Hilfsfunktionen
 
-unsigned int Liter(int Neu, int Alt) {
+inline unsigned int Liter(int Neu, int Alt) {
   // Berechnet das vorhandene Wasser in Litern
   // Benutzung entweder (Messung neu, Messung alt):                   Wasserverbrauch    (>0 wenn Neu > Alt)
   //           oder     (Max_Wasserabstand, Aktueller_Wasserabstand): übriges Restwasser (>0 wenn Aktueller_Wasserabstand < Max_Wasserabstand)
@@ -224,7 +228,7 @@ void setup() {
 
   // Start des Displays
   _Anzeige.begin();
-  delay(100);
+
   unsigned int Restwasser = Liter(Max_Wasserabstand, Letzter_Wasserabstand);
   _Anzeige.Werte_Wasserstand(Restwasser, Fuellstand());
   _Anzeige.Werte_Wasserverbrauch(Wasserverbrauch,Letzter_Wasserabstand);
@@ -425,15 +429,19 @@ void loop() {
       // ggfs. Min / Max anpassen
 	  if(Min_Max_Auto) {
 		  if (Aktueller_Wasserabstand > Max_Wasserabstand) {
-			D_P_EEP("Max Wasserabstand im EEPROM auf "); D_P_EEP(Aktueller_Wasserabstand); D_P_EEPLN(" gesetzt");
-			Max_Wasserabstand = Aktueller_Wasserabstand;
-			EEPROM.put(EEPROM_MAXW, Max_Wasserabstand);
-	        _Anzeige.Werte_Wasserverbrauch(Min_Wasserabstand, Max_Wasserabstand);
+			if (Aktueller_Wasserabstand <= MAX_MAX) { // Ueberpruefen, ob der Wert innerhalb der sinnvollen Grenzen liegt
+				D_P_EEP("Max Wasserabstand im EEPROM auf "); D_P_EEP(Aktueller_Wasserabstand); D_P_EEPLN(" gesetzt");
+				Max_Wasserabstand = Aktueller_Wasserabstand;
+				EEPROM.put(EEPROM_MAXW, Max_Wasserabstand);
+				_Anzeige.Werte_Wasserverbrauch(Min_Wasserabstand, Max_Wasserabstand);
+			}
 		  } else if (Aktueller_Wasserabstand < Min_Wasserabstand) {
 			D_P_EEP("Min Wasserabstand im EEPROM auf "); D_P_EEP(Aktueller_Wasserabstand); D_P_EEPLN(" gesetzt");
-			Min_Wasserabstand = Aktueller_Wasserabstand;
-			EEPROM.put(EEPROM_MINW, Min_Wasserabstand);
-			_Anzeige.Werte_WasserAbstand(Min_Wasserabstand, Max_Wasserabstand);
+			if (Aktueller_Wasserabstand >= MIN_MIN) { // Ueberpruefen, ob der Wert innerhalb der sinnvollen Grenzen liegt
+				Min_Wasserabstand = Aktueller_Wasserabstand;
+				EEPROM.put(EEPROM_MINW, Min_Wasserabstand);
+				_Anzeige.Werte_WasserAbstand(Min_Wasserabstand, Max_Wasserabstand);
+			}
 		  }
 	  }
 
@@ -461,6 +469,7 @@ void loop() {
       D_PRINT("cm("); D_PRINT(Letzter_Wasserabstand);
       D_PRINT("cm)<"); D_PRINT(Max_Wasserabstand);
       D_PRINTLN("cm");
+      D_PRINT("Rest:"); D_PRINT(Restwasser); D_PRINT("l "); D_PRINT(Fuellstand()); D_PRINTLN("%");
 
       D_PRINT("Verb. Wasser: "); D_PRINT(Wasserverbrauch);
       D_PRINT("l (EEPROM: "); D_PRINT(Letzter_Wasserverbrauch);
