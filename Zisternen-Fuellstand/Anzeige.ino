@@ -28,12 +28,22 @@ void Anzeige::begin() {
   Lcd.begin();
 }
 
+void Anzeige::Tausender(int n) {
+	if(n < 1000) {
+		Lcd.print(n); 
+	} else {
+		Lcd.print(n/1000);
+		Lcd.print(".");
+		Lcd.print(n%1000);		
+	}
+}
+
 void Anzeige::tick() {
   // Text
   if (	_Text_Update) {
     Lcd.clear();
     Lcd.setCursor(0, 0);
-    Lcd.print("Rest:"); Lcd.print(_Liter); Lcd.print("l");
+    Lcd.print("Rest:"); Tausender(_Liter); Lcd.print(" l");
     Lcd.setCursor(12, 0);
     Lcd.print(_Prozent); Lcd.print("%");
     D_P_ANZ("Rest:"); D_P_ANZ(_Liter); D_P_ANZ("l "); D_P_ANZ(_Prozent); D_P_ANZLN("%");
@@ -41,7 +51,7 @@ void Anzeige::tick() {
       case Verbrauch:
 		D_P_ANZ("Total: "); D_P_ANZ(_Verbrauch); D_P_ANZLN(" l");
         Lcd.setCursor(0, 1);
-        Lcd.print("Total: "); Lcd.print(_Verbrauch); Lcd.print(" l");
+        Lcd.print("Total: "); Tausender(_Verbrauch); Lcd.print(" l");
         break;
       case Min:
         Lcd.setCursor(0, 1);
@@ -63,23 +73,33 @@ void Anzeige::tick() {
       case MinMax_Auto:
         Lcd.setCursor(0, 1);
         Lcd.print("Min/Max Auto? ");
-		if(_Min_Max_Auto)
-			Lcd.print("J");
-		else
-			Lcd.print("N");
+		switch(_Min_Max_Auto) {
+			case keiner:
+				Lcd.print("N");
+				break;
+			case oben:
+				Lcd.print("O");
+				break;
+			case unten:
+				Lcd.print("U");
+				break;
+			case beide:
+				Lcd.print("B");
+				break;
+		}
         Lcd.setCursor(15, 1);
         break;
       case Leer:
         Lcd.setCursor(0, 1);
         Lcd.print("Leer bei: ");
-        Lcd.print(_Leer);
+        Tausender(_Leer);
         Lcd.print("l");
         Lcd.setCursor(10, 1);
         break;
       case Fast_Leer:
         Lcd.setCursor(0, 1);
         Lcd.print("Warnung: ");
-        Lcd.print(_Fast_Leer);
+        Tausender(_Fast_Leer);
         Lcd.print("l");
         Lcd.setCursor(9, 1);
         break;
@@ -177,7 +197,7 @@ void Anzeige::Werte_WarnLevel(int Leer, int Fast_Leer) {
   _Text_Update = true;
 }
 
-void Anzeige::Werte_Min_Max_Auto(bool MM_A) {
+void Anzeige::Werte_Min_Max_Auto(AutoModus MM_A) {
   _Min_Max_Auto = MM_A;
   _Text_Update = true;
 }

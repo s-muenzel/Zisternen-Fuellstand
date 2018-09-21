@@ -6,7 +6,25 @@ class Anzeige {
   public:
     Anzeige(); // Constructor
 
-    void begin();
+ 	typedef enum AutoModus_e {
+	  keiner,
+	  oben,
+	  unten,
+	  beide
+	} AutoModus;
+
+    typedef enum Modus_Zeile_2_e {
+      Verbrauch = 0,
+      Min,
+	  Max,
+      MinMax_Auto,
+	  Leer,
+	  Fast_Leer,
+      Fehler
+    } Modus_Zeile_2;
+
+
+	void begin();
 
     void tick(); // Update, wenn noetig (z.B. Licht an/aus)
 
@@ -20,18 +38,10 @@ class Anzeige {
     void Werte_Wasserstand(unsigned int Liter, byte Prozent);
     void Werte_Wasserverbrauch(unsigned long Verbrauch, int Akt);
     void Werte_WasserAbstand(int Min, int Max);
-    void Werte_Min_Max_Auto(bool MM_A);
+    void Werte_Min_Max_Auto(AutoModus MM_A);
 	void Werte_WarnLevel(int Leer, int Fast_Leer);
 
-    typedef enum Modus_Zeile_2_e {
-      Verbrauch = 0,
-      Min,
-	  Max,
-      MinMax_Auto,
-	  Leer,
-	  Fast_Leer,
-      Fehler
-    } Modus_Zeile_2;
+
 
     void Setze_Modus_Zeile_2(Modus_Zeile_2 Modus);
     void Modus_Zeile_2_Plus();
@@ -43,6 +53,8 @@ class Anzeige {
 	
   private:
 
+	void Tausender(int n); // Ausgabe mit "." bei > 999
+
     unsigned long _Timeout_Licht;
     unsigned long _Blinken_Licht_An;
     unsigned long _Blinken_Licht_Aus;
@@ -53,7 +65,7 @@ class Anzeige {
     int _Min;
     int _Akt;
     int _Max;
-	bool _Min_Max_Auto;
+	AutoModus _Min_Max_Auto;
 	int _Leer;
 	int _Fast_Leer;
     unsigned long _Verbrauch;
