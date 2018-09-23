@@ -20,22 +20,32 @@ Anzeige::Anzeige() {
   _Modus = Verbrauch;
 
   _Editier_Modus = false;
-  
+
   _Text_Update = false;
 }
 
 void Anzeige::begin() {
   Lcd.begin();
+  delay(100);
+  Lcd.noBacklight();
+  Lcd.noCursor();
+  Lcd.noBlink();
+  _Text_Update = true;
 }
 
 void Anzeige::Tausender(int n) {
-	if(n < 1000) {
-		Lcd.print(n); 
-	} else {
-		Lcd.print(n/1000);
-		Lcd.print(".");
-		Lcd.print(n%1000);		
-	}
+  if (n < 1000) {
+    Lcd.print(n);
+  } else {
+    Lcd.print(n / 1000);
+    Lcd.print(".");
+    int m = n % 1000;
+    if (m < 10)
+      Lcd.print("00");
+    else if (m < 100)
+      Lcd.print("0");
+    Lcd.print(m);
+  }
 }
 
 void Anzeige::tick() {
@@ -43,19 +53,19 @@ void Anzeige::tick() {
   if (	_Text_Update) {
     Lcd.clear();
     Lcd.setCursor(0, 0);
-    Lcd.print("Rest:"); Tausender(_Liter); Lcd.print(" l");
+    Lcd.print("Rest:"); Tausender(_Liter); Lcd.print("l");
     Lcd.setCursor(12, 0);
     Lcd.print(_Prozent); Lcd.print("%");
     D_P_ANZ("Rest:"); D_P_ANZ(_Liter); D_P_ANZ("l "); D_P_ANZ(_Prozent); D_P_ANZLN("%");
     switch (_Modus) {
       case Verbrauch:
-		D_P_ANZ("Total: "); D_P_ANZ(_Verbrauch); D_P_ANZLN(" l");
+        D_P_ANZ("Total: "); D_P_ANZ(_Verbrauch); D_P_ANZLN(" l");
         Lcd.setCursor(0, 1);
         Lcd.print("Total: "); Tausender(_Verbrauch); Lcd.print(" l");
         break;
       case Min:
         Lcd.setCursor(0, 1);
-		D_P_ANZ("Total: "); D_P_ANZ(_Verbrauch); D_P_ANZLN(" l");
+        D_P_ANZ("Total: "); D_P_ANZ(_Verbrauch); D_P_ANZLN(" l");
         D_P_ANZ(_Min); D_P_ANZ("  (<"); D_P_ANZ(_Akt); D_P_ANZ("<"); D_P_ANZ(_Max); D_P_ANZLN(")");
         Lcd.print(_Min); Lcd.print("  (<"); Lcd.print(_Akt); Lcd.print("<"); Lcd.print(_Max); Lcd.print(")");
         Lcd.setCursor(0, 1);
@@ -73,20 +83,20 @@ void Anzeige::tick() {
       case MinMax_Auto:
         Lcd.setCursor(0, 1);
         Lcd.print("Min/Max Auto? ");
-		switch(_Min_Max_Auto) {
-			case keiner:
-				Lcd.print("N");
-				break;
-			case oben:
-				Lcd.print("O");
-				break;
-			case unten:
-				Lcd.print("U");
-				break;
-			case beide:
-				Lcd.print("B");
-				break;
-		}
+        switch (_Min_Max_Auto) {
+          case keiner:
+            Lcd.print("N");
+            break;
+          case oben:
+            Lcd.print("O");
+            break;
+          case unten:
+            Lcd.print("U");
+            break;
+          case beide:
+            Lcd.print("B");
+            break;
+        }
         Lcd.setCursor(15, 1);
         break;
       case Leer:
@@ -117,10 +127,10 @@ void Anzeige::tick() {
       if (Jetzt > _Timeout_Licht) { // Licht ist an und muss ausgeschaltet werden
         D_P_ANZLN("Licht Aus");
         _Licht_ist_an = false;
-		_Editier_Modus = false;
+        _Editier_Modus = false;
         Lcd.noBacklight();
-		Lcd.noCursor();
-		Lcd.noBlink();
+        Lcd.noCursor();
+        Lcd.noBlink();
         _Modus = Verbrauch; // zurueck in Grundzustand (Im Blink-Modus immer auf Grundzustand stellen)
         if (_Blinken_Licht_An > 0) { // Blinken? Dann naechsten Einschaltpunkt festlegen
           _Timeout_Licht = Jetzt + _Blinken_Licht_Aus;
@@ -159,18 +169,18 @@ void Anzeige::Blinken(unsigned long Dauer_An, unsigned long Dauer_Aus) {
   if ( _Blinken_Licht_An != Dauer_An ) {
     _Blinken_Licht_An = Dauer_An;
     _Blinken_Licht_Aus = Dauer_Aus;
-    _Timeout_Licht = max(1, _Timeout_Licht); // damit im naechsten tick das Blinken angestossen wird  
+    _Timeout_Licht = max(1, _Timeout_Licht); // damit im naechsten tick das Blinken angestossen wird
   }
 }
 
 void Anzeige::Blinken_Aus() {
   D_P_ANZLN("Blink-Modus aus");
-  if(_Blinken_Licht_An > 0) {
+  if (_Blinken_Licht_An > 0) {
     _Blinken_Licht_An = 0;
     _Timeout_Licht = max(1, _Timeout_Licht); // damit im naechsten tick das Blinken angestossen wird
   }
-	Lcd.noCursor();
-	Lcd.noBlink();
+  Lcd.noCursor();
+  Lcd.noBlink();
 }
 
 void Anzeige::Werte_Wasserstand(unsigned int Liter, byte Prozent) {
@@ -271,12 +281,12 @@ Anzeige::Modus_Zeile_2 Anzeige::Welcher_Modus_Zeile_2() {
 }
 
 void Anzeige::Editier_Modus(bool An) {
-	_Editier_Modus = An;
-	if(An) {
-		Lcd.cursor();
-		Lcd.blink();
-	} else {
-		Lcd.noCursor();
-		Lcd.noBlink();
-	}
+  _Editier_Modus = An;
+  if (An) {
+    Lcd.cursor();
+    Lcd.blink();
+  } else {
+    Lcd.noCursor();
+    Lcd.noBlink();
+  }
 }
