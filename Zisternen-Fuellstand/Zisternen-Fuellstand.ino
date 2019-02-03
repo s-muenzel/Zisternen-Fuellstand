@@ -9,7 +9,7 @@
 //#define STUB_TEST
 //#define DEBUG_DREHGEBER
 //#define DEBUG_ANZEIGE
-//#define  DEBUG_USER_INPUT
+//#define DEBUG_USER_INPUT
 //#define DEBUG_EEPROM
 //#define DEBUG_SENSOR
 
@@ -120,8 +120,8 @@ Anzeige::AutoModus Min_Max_Auto;	  // []   - Wird Min-Max ermittelt oder ist es 
 
 
 // Transiente Werte
+int Letzter_Wasserabstand;            // [cm] - Letzte Messung, bei der der Wasserverbrauch angepasst wurde
 int Aktueller_Wasserabstand;          // [cm] - Zentimeter Abstand zum Sensor
-int Letzter_Wasserabstand = 0;        // [cm] - Letzte Messung, bei der der Wasserverbrauch angepasst wurde
 unsigned long Naechste_Messung = 0;   // [ms] - Zeitpunkt der nächsten Messung (nach einer Messung + ZYKLUS_DAUER)
 unsigned long Letzter_Wasserverbrauch;// [l]  - Wann wurde das EEPROM das letzte Mal geschrieben
 
